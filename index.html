@@ -284,6 +284,11 @@
       gap: 4px;
       margin-top: 4px;
     }
+    /* ← ここで編集モーダルのチップだけ少し大きくする */
+    .words-edit-chips .chip {
+      font-size: 12px;
+      padding: 4px 8px;
+    }
     .words-edit-empty {
       font-size: 12px;
       margin-top: 4px;
@@ -1463,6 +1468,33 @@
         delRow.className = "candidate-row";
         delRow.style.justifyContent = "flex-end";
 
+        // カテゴリ並び替え ↑↓ と 削除
+        const upGroupBtn = document.createElement("button");
+        upGroupBtn.textContent = "↑";
+        upGroupBtn.disabled = (gi === 0);
+        upGroupBtn.onclick = () => {
+          if (gi === 0) return;
+          const tmp = appData.candidateGroups[gi - 1];
+          appData.candidateGroups[gi - 1] = appData.candidateGroups[gi];
+          appData.candidateGroups[gi] = tmp;
+          saveAppData();
+          refreshQuickAddGroupOptions();
+          renderCandidateEditList();
+        };
+
+        const downGroupBtn = document.createElement("button");
+        downGroupBtn.textContent = "↓";
+        downGroupBtn.disabled = (gi === appData.candidateGroups.length - 1);
+        downGroupBtn.onclick = () => {
+          if (gi === appData.candidateGroups.length - 1) return;
+          const tmp = appData.candidateGroups[gi + 1];
+          appData.candidateGroups[gi + 1] = appData.candidateGroups[gi];
+          appData.candidateGroups[gi] = tmp;
+          saveAppData();
+          refreshQuickAddGroupOptions();
+          renderCandidateEditList();
+        };
+
         const delGroupBtn = document.createElement("button");
         delGroupBtn.textContent = "カテゴリ削除";
         delGroupBtn.onclick = () => {
@@ -1479,6 +1511,8 @@
           renderCandidateEditList();
         };
 
+        delRow.appendChild(upGroupBtn);
+        delRow.appendChild(downGroupBtn);
         delRow.appendChild(delGroupBtn);
         groupBox.appendChild(delRow);
 
@@ -1497,6 +1531,31 @@
             saveAppData();
           };
 
+          // 候補の並び替え ↑↓
+          const upItemBtn = document.createElement("button");
+          upItemBtn.textContent = "↑";
+          upItemBtn.disabled = (ii === 0);
+          upItemBtn.onclick = () => {
+            if (ii === 0) return;
+            const tmp = group.items[ii - 1];
+            group.items[ii - 1] = group.items[ii];
+            group.items[ii] = tmp;
+            saveAppData();
+            renderCandidateEditList();
+          };
+
+          const downItemBtn = document.createElement("button");
+          downItemBtn.textContent = "↓";
+          downItemBtn.disabled = (ii === group.items.length - 1);
+          downItemBtn.onclick = () => {
+            if (ii === group.items.length - 1) return;
+            const tmp = group.items[ii + 1];
+            group.items[ii + 1] = group.items[ii];
+            group.items[ii] = tmp;
+            saveAppData();
+            renderCandidateEditList();
+          };
+
           const delBtn = document.createElement("button");
           delBtn.textContent = "削除";
           delBtn.onclick = () => {
@@ -1506,6 +1565,8 @@
           };
 
           row.appendChild(input);
+          row.appendChild(upItemBtn);
+          row.appendChild(downItemBtn);
           row.appendChild(delBtn);
           itemsContainer.appendChild(row);
         });
