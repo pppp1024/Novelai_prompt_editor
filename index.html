@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -84,7 +83,7 @@
       margin-bottom: 4px;
     }
     .editor-wrapper > textarea {
-      padding-right: 32px; /* ゴミ箱分だけ余白 */
+      padding-right: 32px;
     }
     .editor-actions {
       position: absolute;
@@ -338,6 +337,15 @@
     .small-ni {
       font-size: 11px;
     }
+
+    /* バックアップテキストエリア */
+    #backupTextarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 11px;
+      min-height: 160px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
   </style>
 </head>
 <body>
@@ -345,11 +353,12 @@
     NovelAI プロンプト管理ツール（プロンプト管理用Webアプリ）
   </div>
 
-  <!-- タブ＋追加ボタン＋タブ編集ボタン＋ヘルプ -->
+  <!-- タブ＋追加ボタン＋タブ編集ボタン＋バックアップ＋ヘルプ -->
   <header>
     <div id="tabs"></div>
     <button id="newTabBtn" class="tab-add-button">＋</button>
     <button id="editTabsBtn" class="tab-add-button" title="タブ編集" style="font-size:13px;">⚙</button>
+    <button id="backupBtn" class="tab-add-button" title="バックアップ" style="font-size:12px;">💾</button>
     <button id="helpBtn" class="tab-add-button" title="ヘルプ" style="font-size:12px;">？</button>
   </header>
 
@@ -543,6 +552,34 @@
 
         <p><b>並び替えのヒント</b><br>
         単語編集モーダルでは、チップを「長押し → そのままドラッグ」で並び替えができます。複数選択モードを使うと、複数の単語をまとめて移動・強調・削除できます。</p>
+
+        <p><b>バックアップ</b><br>
+        ヘッダーの 💾 ボタンから、現在の設定を JSON としてエクスポート／インポートできます。環境移行や万一のためのバックアップに使ってください。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- バックアップモーダル -->
+  <div class="modal-backdrop" id="backupModal">
+    <div class="modal" style="width:95vw; max-width:480px;">
+      <button class="modal-close" onclick="closeBackupModal()">×</button>
+      <div class="modal-header">
+        <h2>バックアップ / 復元</h2>
+      </div>
+      <div style="font-size:12px; line-height:1.6;">
+        <p>
+          このアプリの設定やタブ内容・候補・プリセットなどを、JSON 形式でバックアップできます。<br>
+          「JSONを出力」で現在のデータを下のテキストエリアに表示し、コピーしてメモ帳などに保存してください。<br>
+          復元するときは、保存しておいた JSON を貼り付けて「JSONを読み込んで復元」を押します。
+        </p>
+        <p style="color:#b00; font-weight:600;">
+          ※ 復元を実行すると、現在のデータはすべて上書きされます。
+        </p>
+        <div class="candidate-row">
+          <button id="backupExportBtn">JSONを出力</button>
+          <button id="backupImportBtn">JSONを読み込んで復元</button>
+        </div>
+        <textarea id="backupTextarea" placeholder='ここに JSON を表示 / 貼り付けします'></textarea>
       </div>
     </div>
   </div>
@@ -695,6 +732,80 @@
       helpModal.style.display = "none";
     }
     window.closeHelpModal = closeHelpModal;
+
+    // バックアップモーダル
+    const backupModal = document.getElementById("backupModal");
+    const backupTextarea = document.getElementById("backupTextarea");
+    const backupExportBtn = document.getElementById("backupExportBtn");
+    const backupImportBtn = document.getElementById("backupImportBtn");
+    document.getElementById("backupBtn").onclick = () => {
+      backupTextarea.value = "";
+      backupModal.style.display = "flex";
+    };
+    function closeBackupModal() {
+      backupModal.style.display = "none";
+    }
+    window.closeBackupModal = closeBackupModal;
+
+    backupExportBtn.onclick = () => {
+      try {
+        const json = JSON.stringify(appData, null, 2);
+        backupTextarea.value = json;
+        backupTextarea.focus();
+        backupTextarea.select();
+      } catch (e) {
+        alert("JSONの生成に失敗しました。");
+        console.error(e);
+      }
+    };
+
+    backupImportBtn.onclick = () => {
+      const text = backupTextarea.value.trim();
+      if (!text) {
+        alert("復元するJSONが空です。保存しておいたJSONを貼り付けてください。");
+        return;
+      }
+      if (!confirm("このJSONで現在のデータをすべて上書きしてもよろしいですか？")) {
+        return;
+      }
+      try {
+        const parsed = JSON.parse(text);
+        if (!parsed || !Array.isArray(parsed.tabs) || parsed.tabs.length === 0) {
+          alert("このJSONには有効な tabs データが含まれていません。");
+          return;
+        }
+        // 必須フィールドの軽い補完
+        parsed.tabs.forEach(t => {
+          if (t.textPos === undefined && t.text !== undefined) t.textPos = t.text;
+          if (t.textNeg === undefined) t.textNeg = "";
+        });
+        if (!parsed.candidateGroups) parsed.candidateGroups = [];
+        if (!parsed.presetGroups) parsed.presetGroups = [];
+        if (parsed.presetDraftText === undefined) parsed.presetDraftText = "";
+
+        appData = parsed;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+
+        currentTabId = appData.tabs[0].id;
+        activeView = "main";
+        activeEditor = "pos";
+
+        candidateSelectedItems = [];
+        presetSelectedItems = [];
+        selectedWordIndices.clear();
+        wordsMultiSelectMode = false;
+        candidateMultiSelectMode = false;
+        presetMultiSelectMode = false;
+
+        renderTabs();
+        updateView();
+        alert("バックアップから復元しました。");
+        closeBackupModal();
+      } catch (e) {
+        console.error(e);
+        alert("JSONの読み込みに失敗しました。形式が正しいか確認してください。");
+      }
+    };
 
     function saveAppData() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
