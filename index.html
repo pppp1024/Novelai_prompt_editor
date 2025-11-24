@@ -2315,6 +2315,109 @@
             if (selSet.has(i)) block.push(v);
             else remain.push(v);
           });
+          // --- ここからマウス操作用のドラッグ処理を追加 ---
+chip.addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return; // 左クリック以外は無視
+  dragInfoWordEdit = {
+    startX: e.clientX,
+    startY: e.clientY,
+    index: idx,
+    chipEl: chip,
+    dragging: false
+  };
+});
+
+chip.addEventListener("mousemove", (e) => {
+  if (!dragInfoWordEdit) return;
+  if (dragInfoWordEdit.chipEl !== chip) return;
+  const dx = e.clientX - dragInfoWordEdit.startX;
+  const dy = e.clientY - dragInfoWordEdit.startY;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (!dragInfoWordEdit.dragging && dist > 5) {
+    dragInfoWordEdit.dragging = true;
+    dragInfoWordEdit.chipEl.classList.add("dragging");
+  }
+  if (dragInfoWordEdit.dragging) {
+    e.preventDefault();
+  }
+});
+
+chip.addEventListener("mouseup", (e) => {
+  if (!dragInfoWordEdit) return;
+  if (dragInfoWordEdit.chipEl !== chip) return;
+  const info = dragInfoWordEdit;
+  dragInfoWordEdit = null;
+  info.chipEl.classList.remove("dragging");
+
+  const currentIdx = idx;
+
+  // クリックだけの場合：選択トグル
+  if (!info.dragging) {
+    if (wordsMultiSelectMode) {
+      if (selectedWordIndices.has(currentIdx)) {
+        selectedWordIndices.delete(currentIdx);
+      } else {
+        selectedWordIndices.add(currentIdx);
+      }
+      renderWordsEditList();
+    }
+    return;
+  }
+
+  // ドロップ先を判定して並び替え（touchendと同じロジック）
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  if (!target) return;
+  const targetChip = target.closest(".chip");
+  const chipsContainer = wordsEditListEl.querySelector(".words-edit-chips");
+  if (!targetChip || !chipsContainer || !targetChip.parentElement.isSameNode(chipsContainer)) return;
+  const toIndex = Number(targetChip.dataset.index);
+  if (Number.isNaN(toIndex)) return;
+
+  const kind = wordsEditKind;
+  const text = getTextByKind(kind);
+  const tokens = getTokensFromText(text);
+  const keepComma = hasTrailingComma(text);
+
+  let blockIndices;
+  if (wordsMultiSelectMode && selectedWordIndices.size > 0) {
+    blockIndices = Array.from(selectedWordIndices).sort((a, b) => a - b);
+  } else {
+    blockIndices = [currentIdx];
+  }
+
+  const selSet = new Set(blockIndices);
+  const block = [];
+  const remain = [];
+  tokens.forEach((v, i) => {
+    if (selSet.has(i)) block.push(v);
+    else remain.push(v);
+  });
+
+  let dropOriginal = toIndex;
+  let countBefore = 0;
+  blockIndices.forEach(i => {
+    if (i < dropOriginal) countBefore++;
+  });
+  let dropIndex = dropOriginal - countBefore;
+  if (dropIndex < 0) dropIndex = 0;
+  if (dropIndex > remain.length) dropIndex = remain.length;
+
+  const newTokens = remain.slice(0, dropIndex).concat(block, remain.slice(dropIndex));
+  setTextFromTokens(kind, newTokens, keepComma);
+
+  if (wordsMultiSelectMode && block.length > 1) {
+    selectedWordIndices = new Set();
+    for (let i = 0; i < block.length; i++) {
+      selectedWordIndices.add(dropIndex + i);
+    }
+  } else if (wordsMultiSelectMode && block.length === 1) {
+    selectedWordIndices = new Set([dropIndex]);
+  }
+
+  renderWordsEditList();
+});
+// --- マウス操作用ドラッグ処理ここまで ---
+
 
           let dropOriginal = toIndex;
           let countBefore = 0;
