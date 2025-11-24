@@ -1335,29 +1335,23 @@
         preEntry.index = 0;
       }
     }
+    　　　// 既存テキスト t に配列 arr の単語をカンマ区切りで追加する
+function appendTokens(t, arr) {
+  // 現在のトークンを取得
+  const tokens = getTokensFromText(t);
 
-    function appendTokens(text, arr) {
-  // 既存テキストをトークン配列に
-  const tokens = getTokensFromText(text);
-  const keepComma = hasTrailingComma(text);
-
-  // 新しく追加する単語を後ろにくっつける
-  arr.forEach(tok => {
-    const t = (tok || "").trim();
-    if (!t) return;
-    // 重複を許したくなければ次の if をオンにする
-    // if (!tokens.includes(t)) {
-    //   tokens.push(t);
-    // } else {
-    //   return;
-    // }
-    tokens.push(t);
+  // arr のトークンを追加
+  arr.forEach(a => {
+    if (a && a.trim() !== "") {
+      tokens.push(a.trim());
+    }
   });
 
-  // 「, 」でつなぎ直す
-  let newText = tokens.join(", ");
+  // 文末のカンマを保持するか
+  const keepComma = hasTrailingComma(t);
 
-  // もともと末尾にカンマが付いていた場合は維持
+  // 新しいテキストを構築
+  let newText = tokens.join(", ");
   if (keepComma && newText.length > 0 && !/,\s*$/.test(newText)) {
     newText += ", ";
   }
