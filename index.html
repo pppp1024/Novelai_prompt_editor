@@ -1656,12 +1656,13 @@
       }
     };
 
-    function clearEditor(kind) {
+        function clearEditor(kind) {
       if (kind === "pos") {
         const tab = getCurrentTab();
         if (!tab) return;
         tab.textPos = "";
         editorPosEl.value = "";
+        pushHistory("pos", "");
         saveAppData();
         syncWordsFromPosText("");
       } else if (kind === "neg") {
@@ -1669,11 +1670,13 @@
         if (!tab) return;
         tab.textNeg = "";
         editorNegEl.value = "";
+        pushHistory("neg", "");
         saveAppData();
         syncWordsFromNegText("");
       } else if (kind === "preset") {
         appData.presetDraftText = "";
         presetEditorEl.value = "";
+        pushHistory("preset", "");
         saveAppData();
       }
     }
