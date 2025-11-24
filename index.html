@@ -1943,51 +1943,51 @@
       });
     }
 
-    function insertMultipleCandidatesToActiveEditor(values) {
-      if (!values || values.length === 0) return;
-      const combined = values.join(", ") + ", ";
+    function insertMultipleCandidatesToActiveEditor(arr) {
+    if (!arr || arr.length === 0) return;
 
-      if (activeEditor === "preset") {
-        const originalText = presetEditorEl.value;
-        const pos = presetEditorEl.selectionStart || originalText.length;
-        const left = originalText.slice(0, pos);
-        const right = originalText.slice(pos);
-        const insert = (left.trim().length === 0 || left.endsWith(", ") || left.endsWith(" "))
-          ? combined
-          : " " + combined;
-        const newText = left + insert + right;
-        appData.presetDraftText = newText;
-        presetEditorEl.value = newText;
+    if (activeEditor === "pos") {
+        const tab = getCurrentTab();
+        if (!tab) return;
+        let t = tab.textPos || "";
+        t = appendTokens(t, arr);
+        tab.textPos = t;
+        editorPosEl.value = t;
+
+        // ★ Undo 履歴に積む
+        pushHistory("pos", t);
+
         saveAppData();
-        presetEditorEl.blur();
-        return;
-      }
+        syncWordsFromPosText(t);
 
-      const tab = getCurrentTab();
-      if (!tab) return;
-      const targetKind = (activeEditor === "neg") ? "neg" : "pos";
-      const editor = (targetKind === "neg") ? editorNegEl : editorPosEl;
-      const originalText = editor.value;
-      const pos = editor.selectionStart || originalText.length;
-      const left = originalText.slice(0, pos);
-      const right = originalText.slice(pos);
-      const insert = (left.trim().length === 0 || left.endsWith(", ") || left.endsWith(" "))
-        ? combined
-        : " " + combined;
-      const newText = left + insert + right;
+    } else if (activeEditor === "neg") {
 
-      if (targetKind === "neg") {
-        tab.textNeg = newText;
-        editorNegEl.value = newText;
-        syncWordsFromNegText(newText);
-      } else {
-        tab.textPos = newText;
-        editorPosEl.value = newText;
-        syncWordsFromPosText(newText);
-      }
-      saveAppData();
-      editor.blur();
+        const tab = getCurrentTab();
+        if (!tab) return;
+        let t = tab.textNeg || "";
+        t = appendTokens(t, arr);
+        tab.textNeg = t;
+        editorNegEl.value = t;
+
+        // ★ Undo 履歴に積む
+        pushHistory("neg", t);
+
+        saveAppData();
+        syncWordsFromNegText(t);
+
+    } else if (activeEditor === "preset") {
+
+        let t = appData.presetDraftText || "";
+        t = appendTokens(t, arr);
+        appData.presetDraftText = t;
+        presetEditorEl.value = t;
+
+        // ★ Undo 履歴に積む
+        pushHistory("preset", t);
+
+        saveAppData();
     }
+}
 
     function refreshQuickAddGroupOptions() {
       quickAddGroupSelectEl.innerHTML = "";
