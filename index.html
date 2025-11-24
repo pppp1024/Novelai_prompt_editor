@@ -1602,6 +1602,7 @@
       editorPosEl.value = newText;
       saveAppData();
       const newCursorPos = replacedLeft.length;
+      pushHistory("pos", newText);
       editorPosEl.focus();
       editorPosEl.setSelectionRange(newCursorPos, newCursorPos);
       syncWordsFromPosText(newText);
