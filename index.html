@@ -1675,6 +1675,11 @@
     document.getElementById("negClearBtn").onclick = () => clearEditor("neg");
     document.getElementById("presetClearBtn").onclick = () => clearEditor("preset");
 
+        // Undo ボタン
+    document.getElementById("posUndoBtn").onclick = () => undoForKind("pos");
+    document.getElementById("negUndoBtn").onclick = () => undoForKind("neg");
+    document.getElementById("presetUndoBtn").onclick = () => undoForKind("preset");
+
     // タブ追加
     document.getElementById("newTabBtn").onclick = () => {
       const id = "tab-" + Date.now();
