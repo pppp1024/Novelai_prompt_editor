@@ -183,34 +183,45 @@
       position: relative;
       background: white;
       border-radius: 12px;
-      padding: 12px;
+      padding: 8px 12px 12px;
       max-width: 90vw;
       max-height: 80vh;
       overflow: auto;
       box-sizing: border-box;
     }
+
     .modal-header {
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 20;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 8px;
-      margin-bottom: 6px;
-      padding-right: 32px;
+      padding: 6px 4px;
+      margin: 0 0 6px;
     }
     .modal-header h2 {
       margin: 0;
       font-size: 16px;
     }
     .modal-close {
-      position: absolute;
-      top: 6px;
-      right: 8px;
       border: none;
       background: transparent;
       font-size: 18px;
       line-height: 1;
       padding: 0 4px;
       cursor: pointer;
+    }
+
+    .modal-subtoolbar {
+      position: sticky;
+      top: 40px;
+      background: white;
+      z-index: 19;
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
     }
 
     .candidate-row {
@@ -284,7 +295,7 @@
       gap: 4px;
       margin-top: 4px;
     }
-    /* ← ここで編集モーダルのチップだけ少し大きくする */
+    /* 編集モーダルのチップだけ少し大きく */
     .words-edit-chips .chip {
       font-size: 12px;
       padding: 4px 8px;
@@ -435,14 +446,16 @@
   <!-- 候補ページ（選択＋編集） -->
   <div class="modal-backdrop" id="candidatePage">
     <div class="modal" style="width: 95vw; max-width: 480px;">
-      <button class="modal-close" onclick="closeCandidatePage()">×</button>
       <div class="modal-header">
         <h2>候補</h2>
-        <button id="toggleCandidateEditBtn" style="margin-right: 24px;">編集</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button id="toggleCandidateEditBtn">編集</button>
+          <button class="modal-close" onclick="closeCandidatePage()">×</button>
+        </div>
       </div>
 
       <div id="candidateSelectView">
-        <div id="candidateMultiToolbar" style="margin-bottom:6px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+        <div id="candidateMultiToolbar" class="modal-subtoolbar" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
           <label style="font-size:12px;">
             <input type="checkbox" id="candidateMultiToggle" />
             まとめて選択
@@ -473,9 +486,9 @@
   <!-- 単語編集モーダル -->
   <div class="modal-backdrop" id="wordsEditModal">
     <div class="modal" style="width: 95vw; max-width: 480px;">
-      <button class="modal-close" onclick="closeWordsEditModal()">×</button>
       <div class="modal-header">
         <h2 id="wordsEditTitle">単語編集</h2>
+        <button class="modal-close" onclick="closeWordsEditModal()">×</button>
       </div>
       <div id="wordsEditList"></div>
     </div>
@@ -484,12 +497,12 @@
   <!-- プリセット選択モーダル -->
   <div class="modal-backdrop" id="presetModal">
     <div class="modal" style="width: 95vw; max-width: 480px;">
-      <button class="modal-close" onclick="closePresetModal()">×</button>
       <div class="modal-header">
         <h2>プリセット</h2>
+        <button class="modal-close" onclick="closePresetModal()">×</button>
       </div>
 
-      <div id="presetMultiToolbar" style="margin-bottom:6px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+      <div id="presetMultiToolbar" class="modal-subtoolbar" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
         <label style="font-size:12px;">
           <input type="checkbox" id="presetMultiToggle" />
           複数選択モード
@@ -505,9 +518,9 @@
   <!-- タブ編集モーダル -->
   <div class="modal-backdrop" id="tabEditModal">
     <div class="modal" style="width: 95vw; max-width: 480px;">
-      <button class="modal-close" onclick="closeTabEditModal()">×</button>
       <div class="modal-header">
         <h2>タブ編集</h2>
+        <button class="modal-close" onclick="closeTabEditModal()">×</button>
       </div>
       <div id="tabEditList"></div>
     </div>
@@ -516,9 +529,9 @@
   <!-- プリセットカテゴリ編集モーダル -->
   <div class="modal-backdrop" id="presetCategoryEditModal">
     <div class="modal" style="width: 95vw; max-width: 480px;">
-      <button class="modal-close" onclick="closePresetCategoryEditModal()">×</button>
       <div class="modal-header">
         <h2>プリセットカテゴリ編集</h2>
+        <button class="modal-close" onclick="closePresetCategoryEditModal()">×</button>
       </div>
       <div id="presetCategoryEditList"></div>
     </div>
@@ -527,9 +540,9 @@
   <!-- ヘルプモーダル -->
   <div class="modal-backdrop" id="helpModal">
     <div class="modal" style="width: 95vw; max-width: 480px;">
-      <button class="modal-close" onclick="closeHelpModal()">×</button>
       <div class="modal-header">
         <h2>ヘルプ</h2>
+        <button class="modal-close" onclick="closeHelpModal()">×</button>
       </div>
       <div style="font-size:12px; line-height:1.6;">
         <p><b>このアプリについて</b><br>
@@ -567,9 +580,9 @@
   <!-- バックアップモーダル -->
   <div class="modal-backdrop" id="backupModal">
     <div class="modal" style="width:95vw; max-width:480px;">
-      <button class="modal-close" onclick="closeBackupModal()">×</button>
       <div class="modal-header">
         <h2>バックアップ / 復元</h2>
+        <button class="modal-close" onclick="closeBackupModal()">×</button>
       </div>
       <div style="font-size:12px; line-height:1.6;">
         <p>
@@ -607,423 +620,423 @@
         }
       ],
       candidateGroups: [
-         {
-      id: "q1",
-      name: "画質・スタイル",
-      items: [
-        "masterpiece",
-        "best quality",
-        "ultra-detailed",
-        "highly detailed",
-        "highres",
-        "ultra highres",
-        "sharp focus",
-        "crisp lines",
-        "finely detailed",
-        "vivid colors",
-        "soft shading",
-        "cel shading",
-        "anime style",
-        "manga style",
-        "semi-realistic",
-        "painterly",
-        "watercolor style",
-        "oil painting style",
-        "sketch",
-        "lineart",
-        "HDR",
-        "8k",
-        "very aesthetic",
-        "detailed background",
-        "perfect lighting",
-        "stunning details"
-      ]
-    },
-    {
-      id: "q2",
-      name: "人物・キャラクター",
-      items: [
-        "1girl",
-        "1boy",
-        "2girls",
-        "2boys",
-        "group",
-        "solo",
-        "chibi",
-        "kemonomimi",
-        "elf",
-        "demon girl",
-        "angel",
-        "witch",
-        "warrior",
-        "mage",
-        "knight",
-        "shrine maiden",
-        "vampire",
-        "young",
-        "teen",
-        "adult",
-        "slim",
-        "athletic",
-        "petite",
-        "curvy"
-      ]
-    },
-    {
-      id: "q3",
-      name: "顔・表情",
-      items: [
-        "looking at viewer",
-        "looking away",
-        "profile view",
-        "closed eyes",
-        "winking",
-        "smiling",
-        "laughing",
-        "frowning",
-        "sad",
-        "crying",
-        "determined",
-        "embarrassed",
-        "blushing",
-        "serious",
-        "sleepy",
-        "surprised",
-        "expressive eyes",
-        "sharp eyes",
-        "shining eyes",
-        "glowing eyes"
-      ]
-    },
-    {
-      id: "q4",
-      name: "髪型",
-      items: [
-        "long hair",
-        "short hair",
-        "medium hair",
-        "very long hair",
-        "bob cut",
-        "ponytail",
-        "side ponytail",
-        "twintails",
-        "braid",
-        "side braid",
-        "bun hairstyle",
-        "messy hair",
-        "wavy hair",
-        "curly hair",
-        "straight hair"
-      ]
-    },
-    {
-      id: "q5",
-      name: "髪色",
-      items: [
-        "black hair",
-        "brown hair",
-        "blonde hair",
-        "silver hair",
-        "white hair",
-        "red hair",
-        "pink hair",
-        "blue hair",
-        "green hair",
-        "purple hair",
-        "gradient hair",
-        "multicolored hair"
-      ]
-    },
-    {
-      id: "q6",
-      name: "目",
-      items: [
-        "blue eyes",
-        "red eyes",
-        "green eyes",
-        "golden eyes",
-        "purple eyes",
-        "heterochromia",
-        "big eyes",
-        "narrow eyes",
-        "sparkling eyes",
-        "glowing eyes"
-      ]
-    },
-    {
-      id: "q7",
-      name: "服装（カジュアル）",
-      items: [
-        "casual wear",
-        "T-shirt",
-        "hoodie",
-        "sweater",
-        "coat",
-        "jacket",
-        "jeans",
-        "skirt",
-        "shorts"
-      ]
-    },
-    {
-      id: "q8",
-      name: "服装（制服・衣装）",
-      items: [
-        "school uniform",
-        "sailor uniform",
-        "blazer uniform",
-        "maid outfit",
-        "nurse outfit",
-        "military uniform",
-        "suit",
-        "dress",
-        "wedding dress",
-        "kimono",
-        "yukata",
-        "hakama",
-        "armor"
-      ]
-    },
-    {
-      id: "q9",
-      name: "アクセサリー",
-      items: [
-        "ribbon",
-        "hairband",
-        "hair ornament",
-        "hat",
-        "beret",
-        "eyeglasses",
-        "sunglasses",
-        "scarf",
-        "gloves",
-        "stockings",
-        "thighhighs",
-        "boots",
-        "sneakers",
-        "necklace",
-        "earrings"
-      ]
-    },
-    {
-      id: "q10",
-      name: "ポーズ",
-      items: [
-        "standing",
-        "sitting",
-        "lying down",
-        "jumping",
-        "running",
-        "walking",
-        "dynamic pose",
-        "action pose",
-        "crossed arms",
-        "hand on hip",
-        "peace sign",
-        "looking back",
-        "holding weapon",
-        "reading a book",
-        "reaching out"
-      ]
-    },
-    {
-      id: "q11",
-      name: "カメラ・構図",
-      items: [
-        "close-up",
-        "bust shot",
-        "upper body",
-        "full body",
-        "from above",
-        "from below",
-        "wide shot",
-        "extreme close-up",
-        "Dutch angle",
-        "POV",
-        "back view",
-        "side view",
-        "medium shot"
-      ]
-    },
-    {
-      id: "q12",
-      name: "照明・雰囲気",
-      items: [
-        "soft lighting",
-        "strong shadows",
-        "dramatic lighting",
-        "rim light",
-        "backlight",
-        "glow",
-        "warm lighting",
-        "cool lighting",
-        "sunset lighting",
-        "golden hour",
-        "cinematic lighting",
-        "volumetric lighting",
-        "silhouette",
-        "glowing light",
-        "night lighting"
-      ]
-    },
-    {
-      id: "q13",
-      name: "背景・環境",
-      items: [
-        "cityscape",
-        "street at night",
-        "cafe",
-        "classroom",
-        "school corridor",
-        "rooftop",
-        "park",
-        "forest",
-        "mountain",
-        "beach",
-        "seaside",
-        "shrine",
-        "temple",
-        "traditional Japanese room",
-        "library",
-        "laboratory",
-        "futuristic city",
-        "cyberpunk city",
-        "night sky",
-        "cherry blossoms",
-        "snow",
-        "autumn leaves",
-        "summer festival",
-        "fireworks",
-        "fantasy landscape"
-      ]
-    },
-    {
-      id: "q14",
-      name: "エフェクト・演出",
-      items: [
-        "particles",
-        "sparkles",
-        "glowing particles",
-        "magic circle",
-        "aura",
-        "smoke",
-        "fog",
-        "rain",
-        "snowfall",
-        "lens flare",
-        "floating particles"
-      ]
-    },
-    {
-      id: "q15",
-      name: "ネガティブ（共通）",
-      items: [
-        "lowres",
-        "blurry",
-        "jpeg artifacts",
-        "watermark",
-        "bad anatomy",
-        "bad hands",
-        "bad proportions",
-        "extra fingers",
-        "missing fingers",
-        "malformed limbs",
-        "fused fingers",
-        "missing limbs",
-        "deformed",
-        "out of focus",
-        "overexposed",
-        "underexposed",
-        "grainy",
-        "noisy",
-        "duplicate",
-        "worst quality"
-      ]
-    },
+        {
+          id: "q1",
+          name: "画質・スタイル",
+          items: [
+            "masterpiece",
+            "best quality",
+            "ultra-detailed",
+            "highly detailed",
+            "highres",
+            "ultra highres",
+            "sharp focus",
+            "crisp lines",
+            "finely detailed",
+            "vivid colors",
+            "soft shading",
+            "cel shading",
+            "anime style",
+            "manga style",
+            "semi-realistic",
+            "painterly",
+            "watercolor style",
+            "oil painting style",
+            "sketch",
+            "lineart",
+            "HDR",
+            "8k",
+            "very aesthetic",
+            "detailed background",
+            "perfect lighting",
+            "stunning details"
+          ]
+        },
+        {
+          id: "q2",
+          name: "人物・キャラクター",
+          items: [
+            "1girl",
+            "1boy",
+            "2girls",
+            "2boys",
+            "group",
+            "solo",
+            "chibi",
+            "kemonomimi",
+            "elf",
+            "demon girl",
+            "angel",
+            "witch",
+            "warrior",
+            "mage",
+            "knight",
+            "shrine maiden",
+            "vampire",
+            "young",
+            "teen",
+            "adult",
+            "slim",
+            "athletic",
+            "petite",
+            "curvy"
+          ]
+        },
+        {
+          id: "q3",
+          name: "顔・表情",
+          items: [
+            "looking at viewer",
+            "looking away",
+            "profile view",
+            "closed eyes",
+            "winking",
+            "smiling",
+            "laughing",
+            "frowning",
+            "sad",
+            "crying",
+            "determined",
+            "embarrassed",
+            "blushing",
+            "serious",
+            "sleepy",
+            "surprised",
+            "expressive eyes",
+            "sharp eyes",
+            "shining eyes",
+            "glowing eyes"
+          ]
+        },
+        {
+          id: "q4",
+          name: "髪型",
+          items: [
+            "long hair",
+            "short hair",
+            "medium hair",
+            "very long hair",
+            "bob cut",
+            "ponytail",
+            "side ponytail",
+            "twintails",
+            "braid",
+            "side braid",
+            "bun hairstyle",
+            "messy hair",
+            "wavy hair",
+            "curly hair",
+            "straight hair"
+          ]
+        },
+        {
+          id: "q5",
+          name: "髪色",
+          items: [
+            "black hair",
+            "brown hair",
+            "blonde hair",
+            "silver hair",
+            "white hair",
+            "red hair",
+            "pink hair",
+            "blue hair",
+            "green hair",
+            "purple hair",
+            "gradient hair",
+            "multicolored hair"
+          ]
+        },
+        {
+          id: "q6",
+          name: "目",
+          items: [
+            "blue eyes",
+            "red eyes",
+            "green eyes",
+            "golden eyes",
+            "purple eyes",
+            "heterochromia",
+            "big eyes",
+            "narrow eyes",
+            "sparkling eyes",
+            "glowing eyes"
+          ]
+        },
+        {
+          id: "q7",
+          name: "服装（カジュアル）",
+          items: [
+            "casual wear",
+            "T-shirt",
+            "hoodie",
+            "sweater",
+            "coat",
+            "jacket",
+            "jeans",
+            "skirt",
+            "shorts"
+          ]
+        },
+        {
+          id: "q8",
+          name: "服装（制服・衣装）",
+          items: [
+            "school uniform",
+            "sailor uniform",
+            "blazer uniform",
+            "maid outfit",
+            "nurse outfit",
+            "military uniform",
+            "suit",
+            "dress",
+            "wedding dress",
+            "kimono",
+            "yukata",
+            "hakama",
+            "armor"
+          ]
+        },
+        {
+          id: "q9",
+          name: "アクセサリー",
+          items: [
+            "ribbon",
+            "hairband",
+            "hair ornament",
+            "hat",
+            "beret",
+            "eyeglasses",
+            "sunglasses",
+            "scarf",
+            "gloves",
+            "stockings",
+            "thighhighs",
+            "boots",
+            "sneakers",
+            "necklace",
+            "earrings"
+          ]
+        },
+        {
+          id: "q10",
+          name: "ポーズ",
+          items: [
+            "standing",
+            "sitting",
+            "lying down",
+            "jumping",
+            "running",
+            "walking",
+            "dynamic pose",
+            "action pose",
+            "crossed arms",
+            "hand on hip",
+            "peace sign",
+            "looking back",
+            "holding weapon",
+            "reading a book",
+            "reaching out"
+          ]
+        },
+        {
+          id: "q11",
+          name: "カメラ・構図",
+          items: [
+            "close-up",
+            "bust shot",
+            "upper body",
+            "full body",
+            "from above",
+            "from below",
+            "wide shot",
+            "extreme close-up",
+            "Dutch angle",
+            "POV",
+            "back view",
+            "side view",
+            "medium shot"
+          ]
+        },
+        {
+          id: "q12",
+          name: "照明・雰囲気",
+          items: [
+            "soft lighting",
+            "strong shadows",
+            "dramatic lighting",
+            "rim light",
+            "backlight",
+            "glow",
+            "warm lighting",
+            "cool lighting",
+            "sunset lighting",
+            "golden hour",
+            "cinematic lighting",
+            "volumetric lighting",
+            "silhouette",
+            "glowing light",
+            "night lighting"
+          ]
+        },
+        {
+          id: "q13",
+          name: "背景・環境",
+          items: [
+            "cityscape",
+            "street at night",
+            "cafe",
+            "classroom",
+            "school corridor",
+            "rooftop",
+            "park",
+            "forest",
+            "mountain",
+            "beach",
+            "seaside",
+            "shrine",
+            "temple",
+            "traditional Japanese room",
+            "library",
+            "laboratory",
+            "futuristic city",
+            "cyberpunk city",
+            "night sky",
+            "cherry blossoms",
+            "snow",
+            "autumn leaves",
+            "summer festival",
+            "fireworks",
+            "fantasy landscape"
+          ]
+        },
+        {
+          id: "q14",
+          name: "エフェクト・演出",
+          items: [
+            "particles",
+            "sparkles",
+            "glowing particles",
+            "magic circle",
+            "aura",
+            "smoke",
+            "fog",
+            "rain",
+            "snowfall",
+            "lens flare",
+            "floating particles"
+          ]
+        },
+        {
+          id: "q15",
+          name: "ネガティブ（共通）",
+          items: [
+            "lowres",
+            "blurry",
+            "jpeg artifacts",
+            "watermark",
+            "bad anatomy",
+            "bad hands",
+            "bad proportions",
+            "extra fingers",
+            "missing fingers",
+            "malformed limbs",
+            "fused fingers",
+            "missing limbs",
+            "deformed",
+            "out of focus",
+            "overexposed",
+            "underexposed",
+            "grainy",
+            "noisy",
+            "duplicate",
+            "worst quality"
+          ]
+        },
 
-    /* ===== NSFW向けカテゴリ ===== */
-    {
-      id: "n1",
-      name: "NSFW：服装・露出",
-      items: [
-        "nsfw",
-        "suggestive",
-        "suggestive pose",
-        "revealing clothes",
-        "tight clothes",
-        "skin-tight",
-        "cleavage",
-        "deep cleavage",
-        "open shirt",
-        "unbuttoned shirt",
-        "off-shoulder",
-        "bare shoulders",
-        "bare back",
-        "crop top",
-        "short skirt",
-        "miniskirt",
-        "thighhighs",
-        "garter belt",
-        "stockings",
-        "lace stockings",
-        "lingerie",
-        "underwear",
-        "bikini",
-        "micro bikini",
-        "swimsuit",
-        "wet clothes",
-        "see-through clothes"
-      ]
-    },
-    {
-      id: "n2",
-      name: "NSFW：体の強調",
-      items: [
-        "curvy body",
-        "voluptuous",
-        "busty",
-        "slender body",
-        "soft body",
-        "smooth skin",
-        "shiny skin",
-        "glossy skin",
-        "narrow waist",
-        "wide hips",
-        "emphasized thighs",
-        "thick thighs"
-      ]
-    },
-    {
-      id: "n3",
-      name: "NSFW：ポーズ・雰囲気",
-      items: [
-        "seductive",
-        "seductive smile",
-        "teasing smile",
-        "playful pose",
-        "alluring pose",
-        "shy pose",
-        "embarrassed",
-        "blushing",
-        "lying on bed",
-        "on the bed",
-        "bedroom background",
-        "intimate atmosphere",
-        "romantic lighting",
-        "soft bedroom lighting"
-      ]
-    },
-    {
-      id: "n4",
-      name: "NSFW：ネガティブ",
-      items: [
-        "unrealistic body",
-        "deformed chest",
-        "strange shadows on skin",
-        "overexposed skin",
-        "harsh lighting"
-      ]
-    }
+        /* ===== NSFW向けカテゴリ ===== */
+        {
+          id: "n1",
+          name: "NSFW：服装・露出",
+          items: [
+            "nsfw",
+            "suggestive",
+            "suggestive pose",
+            "revealing clothes",
+            "tight clothes",
+            "skin-tight",
+            "cleavage",
+            "deep cleavage",
+            "open shirt",
+            "unbuttoned shirt",
+            "off-shoulder",
+            "bare shoulders",
+            "bare back",
+            "crop top",
+            "short skirt",
+            "miniskirt",
+            "thighhighs",
+            "garter belt",
+            "stockings",
+            "lace stockings",
+            "lingerie",
+            "underwear",
+            "bikini",
+            "micro bikini",
+            "swimsuit",
+            "wet clothes",
+            "see-through clothes"
+          ]
+        },
+        {
+          id: "n2",
+          name: "NSFW：体の強調",
+          items: [
+            "curvy body",
+            "voluptuous",
+            "busty",
+            "slender body",
+            "soft body",
+            "smooth skin",
+            "shiny skin",
+            "glossy skin",
+            "narrow waist",
+            "wide hips",
+            "emphasized thighs",
+            "thick thighs"
+          ]
+        },
+        {
+          id: "n3",
+          name: "NSFW：ポーズ・雰囲気",
+          items: [
+            "seductive",
+            "seductive smile",
+            "teasing smile",
+            "playful pose",
+            "alluring pose",
+            "shy pose",
+            "embarrassed",
+            "blushing",
+            "lying on bed",
+            "on the bed",
+            "bedroom background",
+            "intimate atmosphere",
+            "romantic lighting",
+            "soft bedroom lighting"
+          ]
+        },
+        {
+          id: "n4",
+          name: "NSFW：ネガティブ",
+          items: [
+            "unrealistic body",
+            "deformed chest",
+            "strange shadows on skin",
+            "overexposed skin",
+            "harsh lighting"
+          ]
+        }
       ],
       presetDraftText: ""
     };
@@ -1192,7 +1205,6 @@
           alert("このJSONには有効な tabs データが含まれていません。");
           return;
         }
-        // 必須フィールドの軽い補完
         parsed.tabs.forEach(t => {
           if (t.textPos === undefined && t.text !== undefined) t.textPos = t.text;
           if (t.textNeg === undefined) t.textNeg = "";
@@ -1469,7 +1481,6 @@
       syncWordsFromPosText(newText);
     }
 
-    // 入力イベント
     editorPosEl.addEventListener("input", () => {
       const tab = getCurrentTab();
       if (!tab) return;
@@ -1515,7 +1526,6 @@
       }
     };
 
-    // Clear ボタン
     function clearEditor(kind) {
       if (kind === "pos") {
         const tab = getCurrentTab();
@@ -1660,6 +1670,10 @@
       candidateMultiSelectMode = false;
       candidateSelectedItems = [];
       candidateMultiToggleEl.checked = false;
+      // 最初はすべて折りたたみ
+      appData.candidateGroups.forEach(g => {
+        candidateCollapsed[g.id] = true;
+      });
       updateCandidateModeView();
       candidatePage.style.display = "flex";
     };
@@ -1669,6 +1683,9 @@
       candidateMultiSelectMode = false;
       candidateSelectedItems = [];
       candidateMultiToggleEl.checked = false;
+      appData.candidateGroups.forEach(g => {
+        candidateCollapsed[g.id] = true;
+      });
       updateCandidateModeView();
       candidatePage.style.display = "flex";
     };
@@ -1678,6 +1695,9 @@
       candidateMultiSelectMode = false;
       candidateSelectedItems = [];
       candidateMultiToggleEl.checked = false;
+      appData.candidateGroups.forEach(g => {
+        candidateCollapsed[g.id] = true;
+      });
       updateCandidateModeView();
       candidatePage.style.display = "flex";
     };
@@ -1741,7 +1761,9 @@
         titleSpan.textContent = group.name;
 
         const toggleBtn = document.createElement("button");
-        const collapsed = !!candidateCollapsed[group.id];
+        const collapsed = (candidateCollapsed[group.id] !== undefined)
+          ? candidateCollapsed[group.id]
+          : true; // デフォルトは折りたたみ
         toggleBtn.textContent = collapsed ? "＋ 開く" : "－ 閉じる";
         toggleBtn.onclick = () => {
           candidateCollapsed[group.id] = !collapsed;
@@ -1881,7 +1903,6 @@
         delRow.className = "candidate-row";
         delRow.style.justifyContent = "flex-end";
 
-        // カテゴリ並び替え ↑↓ と 削除
         const upGroupBtn = document.createElement("button");
         upGroupBtn.textContent = "↑";
         upGroupBtn.disabled = (gi === 0);
@@ -1944,7 +1965,6 @@
             saveAppData();
           };
 
-          // 候補の並び替え ↑↓
           const upItemBtn = document.createElement("button");
           upItemBtn.textContent = "↑";
           upItemBtn.disabled = (ii === 0);
@@ -2066,7 +2086,7 @@
       }
 
       const toolbar = document.createElement("div");
-      toolbar.className = "words-edit-toolbar";
+      toolbar.className = "words-edit-toolbar modal-subtoolbar";
 
       const multiLabel = document.createElement("label");
       const multiChk = document.createElement("input");
@@ -2125,7 +2145,6 @@
         minusBtn.textContent = "−";
         minusBtn.title = "弱体（-0.1）";
 
-        // 長押し対応
         function setupHoldButton(btn, delta) {
           let holdTimeout = null;
           let repeatInterval = null;
@@ -2317,7 +2336,7 @@
       wordsEditListEl.appendChild(chipsContainer);
     }
 
-    // --- プリセットカテゴリ選択＆ボタンラベル（固定「追加」） ---
+    // --- プリセットカテゴリ選択＆ボタンラベル ---
     function updatePresetCreateButtonLabel() {
       presetCreateBtn.textContent = "追加";
     }
