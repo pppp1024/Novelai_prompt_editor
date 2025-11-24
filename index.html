@@ -1611,6 +1611,7 @@
       const tab = getCurrentTab();
       if (!tab) return;
       tab.textPos = editorPosEl.value;
+      pushHistory("pos", tab.textPos);
       saveAppData();
       syncWordsFromPosText(editorPosEl.value);
     });
@@ -1622,12 +1623,14 @@
       const tab = getCurrentTab();
       if (!tab) return;
       tab.textNeg = editorNegEl.value;
+      pushHistory("neg", tab.textNeg);
       saveAppData();
       syncWordsFromNegText(editorNegEl.value);
     });
 
     presetEditorEl.addEventListener("input", () => {
       appData.presetDraftText = presetEditorEl.value;
+      pushHistory("preset", appData.presetDraftText);
       saveAppData();
     });
 
