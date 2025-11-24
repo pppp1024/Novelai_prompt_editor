@@ -1443,6 +1443,7 @@
         if (!tab) return;
         tab.textPos = newText;
         editorPosEl.value = newText;
+        pushHistory("pos", newText);
         saveAppData();
         syncWordsFromPosText(newText);
       } else if (kind === "neg") {
@@ -1450,11 +1451,13 @@
         if (!tab) return;
         tab.textNeg = newText;
         editorNegEl.value = newText;
+        pushHistory("neg", newText);
         saveAppData();
         syncWordsFromNegText(newText);
       } else if (kind === "preset") {
         appData.presetDraftText = newText;
         presetEditorEl.value = newText;
+        pushHistory("preset", newText);
         saveAppData();
       }
     }
