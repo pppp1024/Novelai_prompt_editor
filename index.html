@@ -1337,6 +1337,86 @@
       return "";
     }
 
+        // Undo 用：現在タブに対応する履歴エントリを取得
+    function getUndoEntry(kind, createIfMissing = false) {
+      if (kind === "preset") {
+        if (!undoStacks.preset && createIfMissing) {
+          undoStacks.preset = { stack: [], index: -1 };
+        }
+        return undoStacks.preset;
+      }
+
+      const tab = getCurrentTab();
+      if (!tab) return null;
+      const map = undoStacks[kind];
+      if (!map[tab.id] && createIfMissing) {
+        map[tab.id] = { stack: [], index: -1 };
+      }
+      return map[tab.id] || null;
+    }
+
+    // Undo 用：履歴を積む（最大50件くらいまで）
+    function pushHistory(kind, value) {
+      if (isUndoing) return; // Undo 中は履歴を増やさない
+      const entry = getUndoEntry(kind, true);
+      if (!entry) return;
+
+      const stack = entry.stack;
+      const idx = entry.index;
+
+      // 直前と同じなら積まない
+      if (stack.length > 0 && stack[idx] === value) return;
+
+      // 途中からのやり直しなら、先の履歴を削る
+      if (idx < stack.length - 1) {
+        stack.splice(idx + 1);
+      }
+
+      stack.push(value);
+
+      // 履歴を50件に制限
+      if (stack.length > 50) {
+        stack.shift();
+        entry.index = stack.length - 1;
+      } else {
+        entry.index = stack.length - 1;
+      }
+    }
+
+    // Undo 実行
+    function undoForKind(kind) {
+      const entry = getUndoEntry(kind, false);
+      if (!entry || entry.stack.length === 0) return;
+      if (entry.index <= 0) return; // これ以上戻れない
+
+      entry.index -= 1;
+      const value = entry.stack[entry.index];
+
+      isUndoing = true;
+      if (kind === "pos") {
+        const tab = getCurrentTab();
+        if (tab) {
+          tab.textPos = value;
+          editorPosEl.value = value;
+          saveAppData();
+          syncWordsFromPosText(value);
+        }
+      } else if (kind === "neg") {
+        const tab = getCurrentTab();
+        if (tab) {
+          tab.textNeg = value;
+          editorNegEl.value = value;
+          saveAppData();
+          syncWordsFromNegText(value);
+        }
+      } else if (kind === "preset") {
+        appData.presetDraftText = value;
+        presetEditorEl.value = value;
+        saveAppData();
+      }
+      isUndoing = false;
+    }
+
     function setTextFromTokens(kind, tokens, keepTrailingComma = false) {
       let newText = tokens.join(", ");
       if (keepTrailingComma && newText.length > 0 && !/,\s*$/.test(newText)) newText += ", ";
