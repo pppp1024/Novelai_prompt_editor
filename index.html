@@ -1336,6 +1336,35 @@
       }
     }
 
+    function appendTokens(text, arr) {
+  // 既存テキストをトークン配列に
+  const tokens = getTokensFromText(text);
+  const keepComma = hasTrailingComma(text);
+
+  // 新しく追加する単語を後ろにくっつける
+  arr.forEach(tok => {
+    const t = (tok || "").trim();
+    if (!t) return;
+    // 重複を許したくなければ次の if をオンにする
+    // if (!tokens.includes(t)) {
+    //   tokens.push(t);
+    // } else {
+    //   return;
+    // }
+    tokens.push(t);
+  });
+
+  // 「, 」でつなぎ直す
+  let newText = tokens.join(", ");
+
+  // もともと末尾にカンマが付いていた場合は維持
+  if (keepComma && newText.length > 0 && !/,\s*$/.test(newText)) {
+    newText += ", ";
+  }
+
+  return newText;
+}
+
     function getTokensFromText(text) {
       return text
         .split(",")
