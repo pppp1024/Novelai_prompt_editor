@@ -194,13 +194,14 @@
       position: sticky;
       top: 0;
       background: white;
-      z-index: 20;
+      z-index: 30;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 8px;
       padding: 6px 4px;
-      margin: 0 0 6px;
+      margin: 0;
+      border-bottom: 1px solid #eee;
     }
     .modal-header h2 {
       margin: 0;
@@ -219,7 +220,7 @@
       position: sticky;
       top: 40px;
       background: white;
-      z-index: 19;
+      z-index: 29;
       padding: 4px 0;
       border-bottom: 1px solid #eee;
     }
@@ -256,6 +257,7 @@
       border: 1px solid #ddd;
       padding: 6px;
       margin-bottom: 6px;
+      background: #fff;
     }
     .candidate-group-header {
       display: flex;
@@ -466,7 +468,7 @@
       </div>
 
       <div id="candidateEditView" style="display:none;">
-        <div id="candidateAddPanel" style="margin-bottom:8px;">
+        <div id="candidateAddPanel" class="modal-subtoolbar">
           <div class="candidate-row">
             <input id="newGroupNameInput" type="text" placeholder="新しいカテゴリ名" />
             <button id="addGroupBtn">カテゴリ追加</button>
@@ -477,8 +479,7 @@
             <button id="addQuickTagBtn">追加</button>
           </div>
         </div>
-        <hr />
-        <div id="candidateEditList"></div>
+        <div id="candidateEditList" style="margin-top:4px;"></div>
       </div>
     </div>
   </div>
@@ -1038,7 +1039,8 @@
           ]
         }
       ],
-      presetDraftText: ""
+      presetDraftText: "",
+      candidateCollapsed: {}  // カテゴリ開閉状態保存用
     };
 
     // 旧バージョンからの移行
@@ -1096,10 +1098,16 @@
         if (parsed.presetDraftText) {
           appData.presetDraftText = parsed.presetDraftText;
         }
+        if (parsed.candidateCollapsed) {
+          appData.candidateCollapsed = parsed.candidateCollapsed;
+        }
       } catch (e) {
         console.warn("Failed to parse saved data", e);
       }
     }
+
+    let candidateCollapsed = appData.candidateCollapsed || {};
+    appData.candidateCollapsed = candidateCollapsed;
 
     let currentTabId = appData.tabs[0].id;
     let activeEditor = "pos";    // "pos" | "neg" | "preset"
@@ -1121,7 +1129,6 @@
     const presetCreateBtn = document.getElementById("presetCreateBtn");
 
     // 候補系
-    const candidateCollapsed = {};
     let candidateEditMode = false;
     let candidateMultiSelectMode = false;
     let candidateSelectedItems = [];
@@ -1212,8 +1219,12 @@
         if (!parsed.candidateGroups) parsed.candidateGroups = [];
         if (!parsed.presetGroups) parsed.presetGroups = [];
         if (parsed.presetDraftText === undefined) parsed.presetDraftText = "";
+        if (!parsed.candidateCollapsed) parsed.candidateCollapsed = {};
 
         appData = parsed;
+        candidateCollapsed = appData.candidateCollapsed || {};
+        appData.candidateCollapsed = candidateCollapsed;
+
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
 
         currentTabId = appData.tabs[0].id;
@@ -1238,6 +1249,7 @@
     };
 
     function saveAppData() {
+      appData.candidateCollapsed = candidateCollapsed;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
     }
 
@@ -1670,10 +1682,6 @@
       candidateMultiSelectMode = false;
       candidateSelectedItems = [];
       candidateMultiToggleEl.checked = false;
-      // 最初はすべて折りたたみ
-      appData.candidateGroups.forEach(g => {
-        candidateCollapsed[g.id] = true;
-      });
       updateCandidateModeView();
       candidatePage.style.display = "flex";
     };
@@ -1683,9 +1691,6 @@
       candidateMultiSelectMode = false;
       candidateSelectedItems = [];
       candidateMultiToggleEl.checked = false;
-      appData.candidateGroups.forEach(g => {
-        candidateCollapsed[g.id] = true;
-      });
       updateCandidateModeView();
       candidatePage.style.display = "flex";
     };
@@ -1695,9 +1700,6 @@
       candidateMultiSelectMode = false;
       candidateSelectedItems = [];
       candidateMultiToggleEl.checked = false;
-      appData.candidateGroups.forEach(g => {
-        candidateCollapsed[g.id] = true;
-      });
       updateCandidateModeView();
       candidatePage.style.display = "flex";
     };
@@ -1751,6 +1753,11 @@
     function renderCandidateSelectView() {
       candidateButtonList.innerHTML = "";
       appData.candidateGroups.forEach(group => {
+        if (candidateCollapsed[group.id] === undefined) {
+          candidateCollapsed[group.id] = true; // 初回は閉じる
+        }
+        const collapsed = !!candidateCollapsed[group.id];
+
         const groupDiv = document.createElement("div");
         groupDiv.className = "candidate-group";
 
@@ -1761,12 +1768,10 @@
         titleSpan.textContent = group.name;
 
         const toggleBtn = document.createElement("button");
-        const collapsed = (candidateCollapsed[group.id] !== undefined)
-          ? candidateCollapsed[group.id]
-          : true; // デフォルトは折りたたみ
         toggleBtn.textContent = collapsed ? "＋ 開く" : "－ 閉じる";
         toggleBtn.onclick = () => {
           candidateCollapsed[group.id] = !collapsed;
+          saveAppData();
           renderCandidateSelectView();
         };
 
@@ -1871,10 +1876,13 @@
     function renderCandidateEditList() {
       candidateEditListEl.innerHTML = "";
       appData.candidateGroups.forEach((group, gi) => {
+        if (candidateCollapsed[group.id] === undefined) {
+          candidateCollapsed[group.id] = true;
+        }
+        const collapsed = !!candidateCollapsed[group.id];
+
         const groupBox = document.createElement("div");
         groupBox.className = "candidate-group";
-
-        const collapsed = !!candidateCollapsed[group.id];
 
         const headerRow = document.createElement("div");
         headerRow.className = "candidate-row";
@@ -1883,6 +1891,7 @@
         collapseBtn.textContent = collapsed ? "＋" : "－";
         collapseBtn.onclick = () => {
           candidateCollapsed[group.id] = !collapsed;
+          saveAppData();
           renderCandidateEditList();
         };
 
@@ -1940,6 +1949,7 @@
             return;
           }
           appData.candidateGroups.splice(gi, 1);
+          delete candidateCollapsed[group.id];
           saveAppData();
           refreshQuickAddGroupOptions();
           renderCandidateEditList();
@@ -2014,6 +2024,7 @@
       if (!name) return;
       const id = "g_" + Date.now();
       appData.candidateGroups.push({ id, name, items: [] });
+      candidateCollapsed[id] = true;
       newGroupNameInputEl.value = "";
       saveAppData();
       refreshQuickAddGroupOptions();
