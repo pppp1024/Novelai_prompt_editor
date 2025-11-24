@@ -1298,7 +1298,7 @@
       tabsEl.appendChild(presetBtn);
     }
 
-    function updateView() {
+        function updateView() {
       if (activeView === "main") {
         mainView.style.display = "block";
         presetView.style.display = "none";
@@ -1310,12 +1310,29 @@
           syncWordsFromNegText(tab.textNeg || "");
         }
         activeEditor = "pos";
+
+        // ★ここで現在タブの履歴を初期化（最初の状態を入れておく）
+        if (tab) {
+          const posEntry = getUndoEntry("pos", true);
+          posEntry.stack = [tab.textPos || ""];
+          posEntry.index = 0;
+
+          const negEntry = getUndoEntry("neg", true);
+          negEntry.stack = [tab.textNeg || ""];
+          negEntry.index = 0;
+        }
+
       } else {
         mainView.style.display = "none";
         presetView.style.display = "block";
         presetEditorEl.value = appData.presetDraftText || "";
         activeEditor = "preset";
         renderPresetCategoryOptions();
+
+        // ★プリセット用の履歴も初期化
+        const preEntry = getUndoEntry("preset", true);
+        preEntry.stack = [appData.presetDraftText || ""];
+        preEntry.index = 0;
       }
     }
 
