@@ -1156,6 +1156,15 @@
     let dragInfoWordEdit = null;
     let wordsMultiSelectMode = false;
     let selectedWordIndices = new Set();
+    
+        // --- Undo 用履歴 ---
+    // pos / neg はタブごとに履歴を持つ。preset は全体で1つ。
+    let undoStacks = {
+      pos: {},   // { [tabId]: { stack: [text1, text2, ...], index: 現在位置 } }
+      neg: {},
+      preset: { stack: [], index: -1 }
+    };
+    let isUndoing = false; // Undo 実行中は履歴を積まないためのフラグ
 
     // タブ編集モーダル
     const tabEditModal = document.getElementById("tabEditModal");
