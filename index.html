@@ -2077,11 +2077,10 @@
     }
     window.closeWordsEditModal = closeWordsEditModal;
 
-    function renderWordsEditList() {
+        function renderWordsEditList() {
       const kind = wordsEditKind;
       const text = getTextByKind(kind);
       const tokens = getTokensFromText(text);
-      const keepComma = hasTrailingComma(text);
 
       wordsEditListEl.innerHTML = "";
 
@@ -2158,6 +2157,44 @@
         minusBtn.textContent = "−";
         minusBtn.title = "弱体（-0.1）";
 
+        const weightInput = document.createElement("input");
+        weightInput.className = "chip-weight-input";
+        weightInput.type = "number";
+        weightInput.step = "0.1";
+        weightInput.min = "0.1";
+        weightInput.value = parsed.weight != null ? parsed.weight.toFixed(1) : "";
+        weightInput.placeholder = "w";
+
+        // このチップだけの重みを変更し、テキストとUIを同期する関数
+        function changeWeightForThis(delta) {
+          const currentText = getTextByKind(kind);
+          const tks = getTokensFromText(currentText);
+          if (idx < 0 || idx >= tks.length) return;
+
+          const parsedNow = parseWeightToken(tks[idx]);
+          let w = parsedNow.weight;
+          if (w == null) {
+            w = delta > 0 ? 1.1 : 0.9;
+          } else {
+            w = w + delta;
+          }
+          if (w < 0.1) w = 0.1;
+
+          tks[idx] = buildWeightedToken(parsedNow.base, w);
+          const keepCommaNow = hasTrailingComma(currentText);
+          setTextFromTokens(kind, tks, keepCommaNow);
+
+          // UI側の表示も更新
+          label.textContent = tks[idx];
+          const parsedAfter = parseWeightToken(tks[idx]);
+          if (parsedAfter.weight != null) {
+            weightInput.value = parsedAfter.weight.toFixed(1);
+          } else {
+            weightInput.value = "";
+          }
+        }
+
+        // 長押し対応（クリック1回＋押し続けで連続）
         function setupHoldButton(btn, delta) {
           let holdTimeout = null;
           let repeatInterval = null;
@@ -2180,12 +2217,12 @@
           const start = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            adjustWeight(kind, idx, delta);
+            changeWeightForThis(delta);  // 最初の1回
             holdTimeout = setTimeout(() => {
               repeatInterval = setInterval(() => {
-                adjustWeight(kind, idx, delta);
+                changeWeightForThis(delta);  // 長押し中に連続
               }, 120);
-            }, 400);
+            }, 400); // 長押し判定時間
           };
 
           btn.addEventListener("mousedown", start);
@@ -2198,19 +2235,12 @@
 
         setupHoldButton(plusBtn, +0.1);
         setupHoldButton(minusBtn, -0.1);
-        
-        const weightInput = document.createElement("input");
-        weightInput.className = "chip-weight-input";
-        weightInput.type = "number";
-        weightInput.step = "0.1";
-        weightInput.min = "0.1";
-        weightInput.value = parsed.weight != null ? parsed.weight.toFixed(1) : "";
-        weightInput.placeholder = "w";
 
         weightInput.onchange = (e) => {
           e.stopPropagation();
           const val = e.target.value.trim();
-          const tks = getTokensFromText(getTextByKind(kind));
+          const currentText = getTextByKind(kind);
+          const tks = getTokensFromText(currentText);
           if (idx < 0 || idx >= tks.length) return;
 
           const baseParsed = parseWeightToken(tks[idx]);
@@ -2226,7 +2256,8 @@
               return;
             }
           }
-          setTextFromTokens(kind, tks, keepComma);
+          const keepCommaNow = hasTrailingComma(currentText);
+          setTextFromTokens(kind, tks, keepCommaNow);
           renderWordsEditList();
         };
 
@@ -2235,12 +2266,15 @@
         closeBtn.textContent = "×";
         closeBtn.onclick = (e) => {
           e.stopPropagation();
-          const tks = getTokensFromText(getTextByKind(kind));
+          const currentText = getTextByKind(kind);
+          const tks = getTokensFromText(currentText);
           tks.splice(idx, 1);
-          setTextFromTokens(kind, tks, keepComma);
+          const keepCommaNow = hasTrailingComma(currentText);
+          setTextFromTokens(kind, tks, keepCommaNow);
           renderWordsEditList();
         };
 
+        // --- タッチ（スマホ）用ドラッグ ---
         chip.addEventListener("touchstart", (e) => {
           if (!e.touches || e.touches.length === 0) return;
           const t = e.touches[0];
@@ -2259,7 +2293,7 @@
           const t = e.touches[0];
           const dx = t.clientX - dragInfoWordEdit.startX;
           const dy = t.clientY - dragInfoWordEdit.startY;
-          const dist = Math.sqrt(dx*dx + dy*dy);
+          const dist = Math.sqrt(dx * dx + dy * dy);
           if (!dragInfoWordEdit.dragging && dist > 5) {
             dragInfoWordEdit.dragging = true;
             dragInfoWordEdit.chipEl.classList.add("dragging");
@@ -2277,6 +2311,7 @@
 
           const currentIdx = idx;
 
+          // ドラッグしていなければ、複数選択モード時のトグル
           if (!info.dragging) {
             if (wordsMultiSelectMode) {
               if (selectedWordIndices.has(currentIdx)) {
@@ -2300,6 +2335,7 @@
 
           const currentText = getTextByKind(kind);
           const tks = getTokensFromText(currentText);
+          const keepCommaNow = hasTrailingComma(currentText);
 
           let blockIndices;
           if (wordsMultiSelectMode && selectedWordIndices.size > 0) {
@@ -2318,13 +2354,15 @@
 
           let dropOriginal = toIndex;
           let countBefore = 0;
-          blockIndices.forEach(i => { if (i < dropOriginal) countBefore++; });
+          blockIndices.forEach(i => {
+            if (i < dropOriginal) countBefore++;
+          });
           let dropIndex = dropOriginal - countBefore;
           if (dropIndex < 0) dropIndex = 0;
           if (dropIndex > remain.length) dropIndex = remain.length;
 
           const newTokens = remain.slice(0, dropIndex).concat(block, remain.slice(dropIndex));
-          setTextFromTokens(kind, newTokens, keepComma);
+          setTextFromTokens(kind, newTokens, keepCommaNow);
 
           if (wordsMultiSelectMode && block.length > 1) {
             selectedWordIndices = new Set();
@@ -2337,7 +2375,104 @@
 
           renderWordsEditList();
         });
-      
+
+        // --- PCマウス用ドラッグ ---
+        chip.addEventListener("mousedown", (e) => {
+          if (e.button !== 0) return; // 左クリックのみ
+          dragInfoWordEdit = {
+            startX: e.clientX,
+            startY: e.clientY,
+            index: idx,
+            chipEl: chip,
+            dragging: false
+          };
+        });
+
+        chip.addEventListener("mousemove", (e) => {
+          if (!dragInfoWordEdit) return;
+          if (dragInfoWordEdit.chipEl !== chip) return;
+          const dx = e.clientX - dragInfoWordEdit.startX;
+          const dy = e.clientY - dragInfoWordEdit.startY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (!dragInfoWordEdit.dragging && dist > 5) {
+            dragInfoWordEdit.dragging = true;
+            dragInfoWordEdit.chipEl.classList.add("dragging");
+          }
+          if (dragInfoWordEdit.dragging) {
+            e.preventDefault();
+          }
+        });
+
+        chip.addEventListener("mouseup", (e) => {
+          if (!dragInfoWordEdit) return;
+          if (dragInfoWordEdit.chipEl !== chip) return;
+          const info = dragInfoWordEdit;
+          dragInfoWordEdit = null;
+          info.chipEl.classList.remove("dragging");
+
+          const currentIdx = idx;
+
+          if (!info.dragging) {
+            if (wordsMultiSelectMode) {
+              if (selectedWordIndices.has(currentIdx)) {
+                selectedWordIndices.delete(currentIdx);
+              } else {
+                selectedWordIndices.add(currentIdx);
+              }
+              renderWordsEditList();
+            }
+            return;
+          }
+
+          const target = document.elementFromPoint(e.clientX, e.clientY);
+          if (!target) return;
+          const targetChip = target.closest(".chip");
+          if (!targetChip || !targetChip.parentElement.isSameNode(chipsContainer)) return;
+          const toIndex = Number(targetChip.dataset.index);
+          if (Number.isNaN(toIndex)) return;
+
+          const currentText = getTextByKind(kind);
+          const tks = getTokensFromText(currentText);
+          const keepCommaNow = hasTrailingComma(currentText);
+
+          let blockIndices;
+          if (wordsMultiSelectMode && selectedWordIndices.size > 0) {
+            blockIndices = Array.from(selectedWordIndices).sort((a, b) => a - b);
+          } else {
+            blockIndices = [currentIdx];
+          }
+
+          const selSet = new Set(blockIndices);
+          const block = [];
+          const remain = [];
+          tks.forEach((v, i) => {
+            if (selSet.has(i)) block.push(v);
+            else remain.push(v);
+          });
+
+          let dropOriginal = toIndex;
+          let countBefore = 0;
+          blockIndices.forEach(i => {
+            if (i < dropOriginal) countBefore++;
+          });
+          let dropIndex = dropOriginal - countBefore;
+          if (dropIndex < 0) dropIndex = 0;
+          if (dropIndex > remain.length) dropIndex = remain.length;
+
+          const newTokens = remain.slice(0, dropIndex).concat(block, remain.slice(dropIndex));
+          setTextFromTokens(kind, newTokens, keepCommaNow);
+
+          if (wordsMultiSelectMode && block.length > 1) {
+            selectedWordIndices = new Set();
+            for (let i = 0; i < block.length; i++) {
+              selectedWordIndices.add(dropIndex + i);
+            }
+          } else if (wordsMultiSelectMode && block.length === 1) {
+            selectedWordIndices = new Set([dropIndex]);
+          }
+
+          renderWordsEditList();
+        });
 
         chip.appendChild(label);
         chip.appendChild(plusBtn);
