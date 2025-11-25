@@ -428,16 +428,20 @@
         placeholder="ここに保存したいプリセットの内容を書きます（例: masterpiece, best quality, ultra-detailed, ）"></textarea>
     </div>
 
-    <!-- 1段目：候補 / 単語編集 / カテゴリ / 「に」 / 追加 -->
-    <div class="toolbar">
-      <button id="presetOpenCandidatesBtn">候補</button>
-      <button id="presetEditWordsBtn">単語編集</button>
-      <select id="presetCategorySelect" style="min-width:120px;"></select>
-      <span class="small-ni">に</span>
-      <button id="presetCreateBtn">追加</button>
-　　　　<button id="presetUndoBtn" title="元に戻す">↩</button> 
-      <button id="presetClearBtn" title="すべて削除">🗑</button>
-    </div>
+    <!-- 1段目：候補 / 単語編集 / Undo / 🗑 / カテゴリ / 「に」 / 追加 -->
+  <div class="toolbar">
+    <button id="presetOpenCandidatesBtn">候補</button>
+    <button id="presetEditWordsBtn">単語編集</button>
+
+    <!-- ここに Undo と 🗑 を追加 -->
+    <button id="presetUndoBtn" title="元に戻す">↩</button>
+    <button id="presetClearBtn" title="すべて削除">🗑</button>
+
+    <select id="presetCategorySelect" style="min-width:120px;"></select>
+    <span class="small-ni">に</span>
+    <button id="presetCreateBtn">追加</button>
+  </div>
+    
     <!-- 2段目：カテゴリ編集 -->
     <div class="toolbar">
       <button id="openPresetCategoryEditBtn">カテゴリ編集</button>
