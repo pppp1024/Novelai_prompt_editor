@@ -77,7 +77,7 @@
       min-height: 18vh;
     }
 
-    /* テキストエディタ＋右上ボタン */
+    /* テキストエディタ＋右上ボタン（※今は使っていないが他で使うなら残してOK） */
     .editor-wrapper {
       position: relative;
       margin-bottom: 4px;
@@ -299,7 +299,6 @@
       gap: 4px;
       margin-top: 4px;
     }
-    /* 編集モーダルのチップだけ少し大きく */
     .words-edit-chips .chip {
       font-size: 12px;
       padding: 4px 8px;
@@ -395,7 +394,7 @@
       <button id="editWordsBtn">単語編集</button>
       <button id="openPresetsBtn">プリセット</button>
       <button id="copyPosBtn">ポジティブをコピー</button>
-      <button id="posUndoBtn" title="元に戻す">↩</button>
+      <button id="posUndoBtn">Undo</button>
       <button id="posClearBtn" title="すべて削除">🗑</button>
     </div>
 
@@ -408,16 +407,16 @@
         placeholder="ここにネガティブプロンプトを書きます（例: lowres, blurry, watermark, ）"></textarea>
     </div>
 
-    <div class="chips" id="wordsNeg" style="display:none;"></div>
-
     <div class="subtoolbar">
       <button id="openCandidatesNegBtn">候補</button>
       <button id="editWordsNegBtn">単語編集</button>
       <button id="openPresetsNegBtn">プリセット</button>
       <button id="copyNegBtn">ネガティブをコピー</button>
-      <button id="negUndoBtn" title="元に戻す">↩</button>
+      <button id="negUndoBtn">Undo</button>
       <button id="negClearBtn" title="すべて削除">🗑</button>
     </div>
+
+    <div class="chips" id="wordsNeg" style="display:none;"></div>
   </div>
 
   <!-- プリセット作成用ビュー -->
@@ -428,23 +427,18 @@
         placeholder="ここに保存したいプリセットの内容を書きます（例: masterpiece, best quality, ultra-detailed, ）"></textarea>
     </div>
 
-    <!-- 1段目：候補 / 単語編集 / Undo / 🗑 / カテゴリ / 「に」 / 追加 -->
-  <div class="toolbar">
-    <button id="presetOpenCandidatesBtn">候補</button>
-    <button id="presetEditWordsBtn">単語編集</button>
-
-    <!-- ここに Undo と 🗑 を追加 -->
-    <button id="presetUndoBtn" title="元に戻す">↩</button>
-    <button id="presetClearBtn" title="すべて削除">🗑</button>
-
-    
-  </div>
-    
-    <!-- 2段目：カテゴリ編集 -->
+    <!-- 1段目：候補 / 単語編集 / カテゴリ / 「に」 / 追加 -->
     <div class="toolbar">
+      <button id="presetOpenCandidatesBtn">候補</button>
+      <button id="presetEditWordsBtn">単語編集</button>
       <select id="presetCategorySelect" style="min-width:120px;"></select>
       <span class="small-ni">に</span>
       <button id="presetCreateBtn">追加</button>
+      <button id="presetUndoBtn">Undo</button>
+      <button id="presetClearBtn" title="すべて削除">🗑</button>
+    </div>
+    <!-- 2段目：カテゴリ編集 -->
+    <div class="toolbar">
       <button id="openPresetCategoryEditBtn">カテゴリ編集</button>
     </div>
   </div>
@@ -607,6 +601,10 @@
     </div>
   </div>
 
+  <!-- ▼ ここで候補リストを外部ファイルから読み込む -->
+  <script src="candidates.js"></script>
+
+  <!-- メインロジック -->
   <script>
     const STORAGE_KEY = "novelai_prompt_appData_v13";
 
@@ -624,427 +622,10 @@
           ]
         }
       ],
-      candidateGroups: [
-        {
-          id: "q1",
-          name: "画質・スタイル",
-          items: [
-            "masterpiece",
-            "best quality",
-            "ultra-detailed",
-            "highly detailed",
-            "highres",
-            "ultra highres",
-            "sharp focus",
-            "crisp lines",
-            "finely detailed",
-            "vivid colors",
-            "soft shading",
-            "cel shading",
-            "anime style",
-            "manga style",
-            "semi-realistic",
-            "painterly",
-            "watercolor style",
-            "oil painting style",
-            "sketch",
-            "lineart",
-            "HDR",
-            "8k",
-            "very aesthetic",
-            "detailed background",
-            "perfect lighting",
-            "stunning details"
-          ]
-        },
-        {
-          id: "q2",
-          name: "人物・キャラクター",
-          items: [
-            "1girl",
-            "1boy",
-            "2girls",
-            "2boys",
-            "group",
-            "solo",
-            "chibi",
-            "kemonomimi",
-            "elf",
-            "demon girl",
-            "angel",
-            "witch",
-            "warrior",
-            "mage",
-            "knight",
-            "shrine maiden",
-            "vampire",
-            "young",
-            "teen",
-            "adult",
-            "slim",
-            "athletic",
-            "petite",
-            "curvy"
-          ]
-        },
-        {
-          id: "q3",
-          name: "顔・表情",
-          items: [
-            "looking at viewer",
-            "looking away",
-            "profile view",
-            "closed eyes",
-            "winking",
-            "smiling",
-            "laughing",
-            "frowning",
-            "sad",
-            "crying",
-            "determined",
-            "embarrassed",
-            "blushing",
-            "serious",
-            "sleepy",
-            "surprised",
-            "expressive eyes",
-            "sharp eyes",
-            "shining eyes",
-            "glowing eyes"
-          ]
-        },
-        {
-          id: "q4",
-          name: "髪型",
-          items: [
-            "long hair",
-            "short hair",
-            "medium hair",
-            "very long hair",
-            "bob cut",
-            "ponytail",
-            "side ponytail",
-            "twintails",
-            "braid",
-            "side braid",
-            "bun hairstyle",
-            "messy hair",
-            "wavy hair",
-            "curly hair",
-            "straight hair"
-          ]
-        },
-        {
-          id: "q5",
-          name: "髪色",
-          items: [
-            "black hair",
-            "brown hair",
-            "blonde hair",
-            "silver hair",
-            "white hair",
-            "red hair",
-            "pink hair",
-            "blue hair",
-            "green hair",
-            "purple hair",
-            "gradient hair",
-            "multicolored hair"
-          ]
-        },
-        {
-          id: "q6",
-          name: "目",
-          items: [
-            "blue eyes",
-            "red eyes",
-            "green eyes",
-            "golden eyes",
-            "purple eyes",
-            "heterochromia",
-            "big eyes",
-            "narrow eyes",
-            "sparkling eyes",
-            "glowing eyes"
-          ]
-        },
-        {
-          id: "q7",
-          name: "服装（カジュアル）",
-          items: [
-            "casual wear",
-            "T-shirt",
-            "hoodie",
-            "sweater",
-            "coat",
-            "jacket",
-            "jeans",
-            "skirt",
-            "shorts"
-          ]
-        },
-        {
-          id: "q8",
-          name: "服装（制服・衣装）",
-          items: [
-            "school uniform",
-            "sailor uniform",
-            "blazer uniform",
-            "maid outfit",
-            "nurse outfit",
-            "military uniform",
-            "suit",
-            "dress",
-            "wedding dress",
-            "kimono",
-            "yukata",
-            "hakama",
-            "armor"
-          ]
-        },
-        {
-          id: "q9",
-          name: "アクセサリー",
-          items: [
-            "ribbon",
-            "hairband",
-            "hair ornament",
-            "hat",
-            "beret",
-            "eyeglasses",
-            "sunglasses",
-            "scarf",
-            "gloves",
-            "stockings",
-            "thighhighs",
-            "boots",
-            "sneakers",
-            "necklace",
-            "earrings"
-          ]
-        },
-        {
-          id: "q10",
-          name: "ポーズ",
-          items: [
-            "standing",
-            "sitting",
-            "lying down",
-            "jumping",
-            "running",
-            "walking",
-            "dynamic pose",
-            "action pose",
-            "crossed arms",
-            "hand on hip",
-            "peace sign",
-            "looking back",
-            "holding weapon",
-            "reading a book",
-            "reaching out"
-          ]
-        },
-        {
-          id: "q11",
-          name: "カメラ・構図",
-          items: [
-            "close-up",
-            "bust shot",
-            "upper body",
-            "full body",
-            "from above",
-            "from below",
-            "wide shot",
-            "extreme close-up",
-            "Dutch angle",
-            "POV",
-            "back view",
-            "side view",
-            "medium shot"
-          ]
-        },
-        {
-          id: "q12",
-          name: "照明・雰囲気",
-          items: [
-            "soft lighting",
-            "strong shadows",
-            "dramatic lighting",
-            "rim light",
-            "backlight",
-            "glow",
-            "warm lighting",
-            "cool lighting",
-            "sunset lighting",
-            "golden hour",
-            "cinematic lighting",
-            "volumetric lighting",
-            "silhouette",
-            "glowing light",
-            "night lighting"
-          ]
-        },
-        {
-          id: "q13",
-          name: "背景・環境",
-          items: [
-            "cityscape",
-            "street at night",
-            "cafe",
-            "classroom",
-            "school corridor",
-            "rooftop",
-            "park",
-            "forest",
-            "mountain",
-            "beach",
-            "seaside",
-            "shrine",
-            "temple",
-            "traditional Japanese room",
-            "library",
-            "laboratory",
-            "futuristic city",
-            "cyberpunk city",
-            "night sky",
-            "cherry blossoms",
-            "snow",
-            "autumn leaves",
-            "summer festival",
-            "fireworks",
-            "fantasy landscape"
-          ]
-        },
-        {
-          id: "q14",
-          name: "エフェクト・演出",
-          items: [
-            "particles",
-            "sparkles",
-            "glowing particles",
-            "magic circle",
-            "aura",
-            "smoke",
-            "fog",
-            "rain",
-            "snowfall",
-            "lens flare",
-            "floating particles"
-          ]
-        },
-        {
-          id: "q15",
-          name: "ネガティブ（共通）",
-          items: [
-            "lowres",
-            "blurry",
-            "jpeg artifacts",
-            "watermark",
-            "bad anatomy",
-            "bad hands",
-            "bad proportions",
-            "extra fingers",
-            "missing fingers",
-            "malformed limbs",
-            "fused fingers",
-            "missing limbs",
-            "deformed",
-            "out of focus",
-            "overexposed",
-            "underexposed",
-            "grainy",
-            "noisy",
-            "duplicate",
-            "worst quality"
-          ]
-        },
-
-        /* ===== NSFW向けカテゴリ ===== */
-        {
-          id: "n1",
-          name: "NSFW：服装・露出",
-          items: [
-            "nsfw",
-            "suggestive",
-            "suggestive pose",
-            "revealing clothes",
-            "tight clothes",
-            "skin-tight",
-            "cleavage",
-            "deep cleavage",
-            "open shirt",
-            "unbuttoned shirt",
-            "off-shoulder",
-            "bare shoulders",
-            "bare back",
-            "crop top",
-            "short skirt",
-            "miniskirt",
-            "thighhighs",
-            "garter belt",
-            "stockings",
-            "lace stockings",
-            "lingerie",
-            "underwear",
-            "bikini",
-            "micro bikini",
-            "swimsuit",
-            "wet clothes",
-            "see-through clothes"
-          ]
-        },
-        {
-          id: "n2",
-          name: "NSFW：体の強調",
-          items: [
-            "curvy body",
-            "voluptuous",
-            "busty",
-            "slender body",
-            "soft body",
-            "smooth skin",
-            "shiny skin",
-            "glossy skin",
-            "narrow waist",
-            "wide hips",
-            "emphasized thighs",
-            "thick thighs"
-          ]
-        },
-        {
-          id: "n3",
-          name: "NSFW：ポーズ・雰囲気",
-          items: [
-            "seductive",
-            "seductive smile",
-            "teasing smile",
-            "playful pose",
-            "alluring pose",
-            "shy pose",
-            "embarrassed",
-            "blushing",
-            "lying on bed",
-            "on the bed",
-            "bedroom background",
-            "intimate atmosphere",
-            "romantic lighting",
-            "soft bedroom lighting"
-          ]
-        },
-        {
-          id: "n4",
-          name: "NSFW：ネガティブ",
-          items: [
-            "unrealistic body",
-            "deformed chest",
-            "strange shadows on skin",
-            "overexposed skin",
-            "harsh lighting"
-          ]
-        }
-      ],
+      /* ★ 候補は別ファイルから読み込む */
+      candidateGroups: (window.CANDIDATE_GROUPS || []),
       presetDraftText: "",
-      candidateCollapsed: {}  // カテゴリ開閉状態保存用
+      candidateCollapsed: {}
     };
 
     // 旧バージョンからの移行
@@ -1093,11 +674,8 @@
           ];
         }
         if (parsed.candidateGroups) {
+          // バックアップに candidateGroups が含まれていればそちらを優先
           appData.candidateGroups = parsed.candidateGroups;
-        } else if (parsed.candidates) {
-          appData.candidateGroups = [
-            { id: "g_migrated", name: "その他", items: parsed.candidates }
-          ];
         }
         if (parsed.presetDraftText) {
           appData.presetDraftText = parsed.presetDraftText;
@@ -1132,6 +710,41 @@
     const presetCategorySelectEl = document.getElementById("presetCategorySelect");
     const presetCreateBtn = document.getElementById("presetCreateBtn");
 
+    // Undo 系
+    const posUndoBtn = document.getElementById("posUndoBtn");
+    const negUndoBtn = document.getElementById("negUndoBtn");
+    const presetUndoBtn = document.getElementById("presetUndoBtn");
+
+    const undoStack = {
+      pos: [],
+      neg: [],
+      preset: []
+    };
+    const UNDO_LIMIT = 50;
+
+    function pushUndo(kind, value) {
+      const stack = undoStack[kind];
+      if (!stack) return;
+      if (stack.length === 0 || stack[stack.length - 1] !== value) {
+        stack.push(value);
+        if (stack.length > UNDO_LIMIT) {
+          stack.shift();
+        }
+      }
+    }
+
+    function popUndo(kind) {
+      const stack = undoStack[kind];
+      if (!stack || stack.length === 0) return null;
+      return stack.pop();
+    }
+
+    // 値が変わる直前に保存する便利関数
+    function saveUndoBeforeChange(kind) {
+      const current = getTextByKind(kind);
+      pushUndo(kind, current);
+    }
+
     // 候補系
     let candidateEditMode = false;
     let candidateMultiSelectMode = false;
@@ -1155,15 +768,6 @@
     let dragInfoWordEdit = null;
     let wordsMultiSelectMode = false;
     let selectedWordIndices = new Set();
-    
-        // --- Undo 用履歴 ---
-    // pos / neg はタブごとに履歴を持つ。preset は全体で1つ。
-    let undoStacks = {
-      pos: {},   // { [tabId]: { stack: [text1, text2, ...], index: 現在位置 } }
-      neg: {},
-      preset: { stack: [], index: -1 }
-    };
-    let isUndoing = false; // Undo 実行中は履歴を積まないためのフラグ
 
     // タブ編集モーダル
     const tabEditModal = document.getElementById("tabEditModal");
@@ -1309,54 +913,14 @@
           syncWordsFromNegText(tab.textNeg || "");
         }
         activeEditor = "pos";
-
-        // ★ここで現在タブの履歴を初期化（最初の状態を入れておく）
-        if (tab) {
-          const posEntry = getUndoEntry("pos", true);
-          posEntry.stack = [tab.textPos || ""];
-          posEntry.index = 0;
-
-          const negEntry = getUndoEntry("neg", true);
-          negEntry.stack = [tab.textNeg || ""];
-          negEntry.index = 0;
-        }
-
       } else {
         mainView.style.display = "none";
         presetView.style.display = "block";
         presetEditorEl.value = appData.presetDraftText || "";
         activeEditor = "preset";
         renderPresetCategoryOptions();
-
-        // ★プリセット用の履歴も初期化
-        const preEntry = getUndoEntry("preset", true);
-        preEntry.stack = [appData.presetDraftText || ""];
-        preEntry.index = 0;
       }
     }
-    　　　// 既存テキスト t に配列 arr の単語をカンマ区切りで追加する
-function appendTokens(t, arr) {
-  // 現在のトークンを取得
-  const tokens = getTokensFromText(t);
-
-  // arr のトークンを追加
-  arr.forEach(a => {
-    if (a && a.trim() !== "") {
-      tokens.push(a.trim());
-    }
-  });
-
-  // 文末のカンマを保持するか
-  const keepComma = hasTrailingComma(t);
-
-  // 新しいテキストを構築
-  let newText = tokens.join(", ");
-  if (keepComma && newText.length > 0 && !/,\s*$/.test(newText)) {
-    newText += ", ";
-  }
-
-  return newText;
-}
 
     function getTokensFromText(text) {
       return text
@@ -1376,86 +940,6 @@ function appendTokens(t, arr) {
       return "";
     }
 
-        // Undo 用：現在タブに対応する履歴エントリを取得
-    function getUndoEntry(kind, createIfMissing = false) {
-      if (kind === "preset") {
-        if (!undoStacks.preset && createIfMissing) {
-          undoStacks.preset = { stack: [], index: -1 };
-        }
-        return undoStacks.preset;
-      }
-
-      const tab = getCurrentTab();
-      if (!tab) return null;
-      const map = undoStacks[kind];
-      if (!map[tab.id] && createIfMissing) {
-        map[tab.id] = { stack: [], index: -1 };
-      }
-      return map[tab.id] || null;
-    }
-
-    // Undo 用：履歴を積む（最大50件くらいまで）
-    function pushHistory(kind, value) {
-      if (isUndoing) return; // Undo 中は履歴を増やさない
-      const entry = getUndoEntry(kind, true);
-      if (!entry) return;
-
-      const stack = entry.stack;
-      const idx = entry.index;
-
-      // 直前と同じなら積まない
-      if (stack.length > 0 && stack[idx] === value) return;
-
-      // 途中からのやり直しなら、先の履歴を削る
-      if (idx < stack.length - 1) {
-        stack.splice(idx + 1);
-      }
-
-      stack.push(value);
-
-      // 履歴を50件に制限
-      if (stack.length > 50) {
-        stack.shift();
-        entry.index = stack.length - 1;
-      } else {
-        entry.index = stack.length - 1;
-      }
-    }
-
-    // Undo 実行
-    function undoForKind(kind) {
-      const entry = getUndoEntry(kind, false);
-      if (!entry || entry.stack.length === 0) return;
-      if (entry.index <= 0) return; // これ以上戻れない
-
-      entry.index -= 1;
-      const value = entry.stack[entry.index];
-
-      isUndoing = true;
-      if (kind === "pos") {
-        const tab = getCurrentTab();
-        if (tab) {
-          tab.textPos = value;
-          editorPosEl.value = value;
-          saveAppData();
-          syncWordsFromPosText(value);
-        }
-      } else if (kind === "neg") {
-        const tab = getCurrentTab();
-        if (tab) {
-          tab.textNeg = value;
-          editorNegEl.value = value;
-          saveAppData();
-          syncWordsFromNegText(value);
-        }
-      } else if (kind === "preset") {
-        appData.presetDraftText = value;
-        presetEditorEl.value = value;
-        saveAppData();
-      }
-      isUndoing = false;
-    }
-
     function setTextFromTokens(kind, tokens, keepTrailingComma = false) {
       let newText = tokens.join(", ");
       if (keepTrailingComma && newText.length > 0 && !/,\s*$/.test(newText)) newText += ", ";
@@ -1465,7 +949,6 @@ function appendTokens(t, arr) {
         if (!tab) return;
         tab.textPos = newText;
         editorPosEl.value = newText;
-        pushHistory("pos", newText);
         saveAppData();
         syncWordsFromPosText(newText);
       } else if (kind === "neg") {
@@ -1473,13 +956,11 @@ function appendTokens(t, arr) {
         if (!tab) return;
         tab.textNeg = newText;
         editorNegEl.value = newText;
-        pushHistory("neg", newText);
         saveAppData();
         syncWordsFromNegText(newText);
       } else if (kind === "preset") {
         appData.presetDraftText = newText;
         presetEditorEl.value = newText;
-        pushHistory("preset", newText);
         saveAppData();
       }
     }
@@ -1624,17 +1105,46 @@ function appendTokens(t, arr) {
       editorPosEl.value = newText;
       saveAppData();
       const newCursorPos = replacedLeft.length;
-      pushHistory("pos", newText);
       editorPosEl.focus();
       editorPosEl.setSelectionRange(newCursorPos, newCursorPos);
       syncWordsFromPosText(newText);
     }
 
+    // --- Undo ボタンの動作 ---
+    posUndoBtn.onclick = () => {
+      const prev = popUndo("pos");
+      if (prev == null) return;
+      const tab = getCurrentTab();
+      if (!tab) return;
+      tab.textPos = prev;
+      editorPosEl.value = prev;
+      saveAppData();
+      syncWordsFromPosText(prev);
+    };
+
+    negUndoBtn.onclick = () => {
+      const prev = popUndo("neg");
+      if (prev == null) return;
+      const tab = getCurrentTab();
+      if (!tab) return;
+      tab.textNeg = prev;
+      editorNegEl.value = prev;
+      saveAppData();
+      syncWordsFromNegText(prev);
+    };
+
+    presetUndoBtn.onclick = () => {
+      const prev = popUndo("preset");
+      if (prev == null) return;
+      appData.presetDraftText = prev;
+      presetEditorEl.value = prev;
+      saveAppData();
+    };
+
     editorPosEl.addEventListener("input", () => {
       const tab = getCurrentTab();
       if (!tab) return;
       tab.textPos = editorPosEl.value;
-      pushHistory("pos", tab.textPos);
       saveAppData();
       syncWordsFromPosText(editorPosEl.value);
     });
@@ -1646,14 +1156,12 @@ function appendTokens(t, arr) {
       const tab = getCurrentTab();
       if (!tab) return;
       tab.textNeg = editorNegEl.value;
-      pushHistory("neg", tab.textNeg);
       saveAppData();
       syncWordsFromNegText(editorNegEl.value);
     });
 
     presetEditorEl.addEventListener("input", () => {
       appData.presetDraftText = presetEditorEl.value;
-      pushHistory("preset", appData.presetDraftText);
       saveAppData();
     });
 
@@ -1684,7 +1192,6 @@ function appendTokens(t, arr) {
         if (!tab) return;
         tab.textPos = "";
         editorPosEl.value = "";
-        pushHistory("pos", "");
         saveAppData();
         syncWordsFromPosText("");
       } else if (kind === "neg") {
@@ -1692,25 +1199,28 @@ function appendTokens(t, arr) {
         if (!tab) return;
         tab.textNeg = "";
         editorNegEl.value = "";
-        pushHistory("neg", "");
         saveAppData();
         syncWordsFromNegText("");
       } else if (kind === "preset") {
         appData.presetDraftText = "";
         presetEditorEl.value = "";
-        pushHistory("preset", "");
         saveAppData();
       }
     }
 
-    document.getElementById("posClearBtn").onclick = () => clearEditor("pos");
-    document.getElementById("negClearBtn").onclick = () => clearEditor("neg");
-    document.getElementById("presetClearBtn").onclick = () => clearEditor("preset");
-
-        // Undo ボタン
-    document.getElementById("posUndoBtn").onclick = () => undoForKind("pos");
-    document.getElementById("negUndoBtn").onclick = () => undoForKind("neg");
-    document.getElementById("presetUndoBtn").onclick = () => undoForKind("preset");
+    // クリアボタン（押す前にUndoに積む）
+    document.getElementById("posClearBtn").onclick = () => {
+      saveUndoBeforeChange("pos");
+      clearEditor("pos");
+    };
+    document.getElementById("negClearBtn").onclick = () => {
+      saveUndoBeforeChange("neg");
+      clearEditor("neg");
+    };
+    document.getElementById("presetClearBtn").onclick = () => {
+      saveUndoBeforeChange("preset");
+      clearEditor("preset");
+    };
 
     // タブ追加
     document.getElementById("newTabBtn").onclick = () => {
@@ -1941,6 +1451,8 @@ function appendTokens(t, arr) {
 
           b.onclick = () => {
             if (!candidateMultiSelectMode) {
+              // 挿入前にUndoに積む
+              saveUndoBeforeChange(activeEditor);
               insertMultipleCandidatesToActiveEditor([item]);
               closeCandidatePage();
             } else {
@@ -1965,51 +1477,51 @@ function appendTokens(t, arr) {
       });
     }
 
-    function insertMultipleCandidatesToActiveEditor(arr) {
-    if (!arr || arr.length === 0) return;
+    function insertMultipleCandidatesToActiveEditor(values) {
+      if (!values || values.length === 0) return;
+      const combined = values.join(", ") + ", ";
 
-    if (activeEditor === "pos") {
-        const tab = getCurrentTab();
-        if (!tab) return;
-        let t = tab.textPos || "";
-        t = appendTokens(t, arr);
-        tab.textPos = t;
-        editorPosEl.value = t;
-
-        // ★ Undo 履歴に積む
-        pushHistory("pos", t);
-
+      if (activeEditor === "preset") {
+        const originalText = presetEditorEl.value;
+        const pos = presetEditorEl.selectionStart || originalText.length;
+        const left = originalText.slice(0, pos);
+        const right = originalText.slice(pos);
+        const insert = (left.trim().length === 0 || left.endsWith(", ") || left.endsWith(" "))
+          ? combined
+          : " " + combined;
+        const newText = left + insert + right;
+        appData.presetDraftText = newText;
+        presetEditorEl.value = newText;
         saveAppData();
-        syncWordsFromPosText(t);
+        presetEditorEl.blur();
+        return;
+      }
 
-    } else if (activeEditor === "neg") {
+      const tab = getCurrentTab();
+      if (!tab) return;
+      const targetKind = (activeEditor === "neg") ? "neg" : "pos";
+      const editor = (targetKind === "neg") ? editorNegEl : editorPosEl;
+      const originalText = editor.value;
+      const pos = editor.selectionStart || originalText.length;
+      const left = originalText.slice(0, pos);
+      const right = originalText.slice(pos);
+      const insert = (left.trim().length === 0 || left.endsWith(", ") || left.endsWith(" "))
+        ? combined
+        : " " + combined;
+      const newText = left + insert + right;
 
-        const tab = getCurrentTab();
-        if (!tab) return;
-        let t = tab.textNeg || "";
-        t = appendTokens(t, arr);
-        tab.textNeg = t;
-        editorNegEl.value = t;
-
-        // ★ Undo 履歴に積む
-        pushHistory("neg", t);
-
-        saveAppData();
-        syncWordsFromNegText(t);
-
-    } else if (activeEditor === "preset") {
-
-        let t = appData.presetDraftText || "";
-        t = appendTokens(t, arr);
-        appData.presetDraftText = t;
-        presetEditorEl.value = t;
-
-        // ★ Undo 履歴に積む
-        pushHistory("preset", t);
-
-        saveAppData();
+      if (targetKind === "neg") {
+        tab.textNeg = newText;
+        editorNegEl.value = newText;
+        syncWordsFromNegText(newText);
+      } else {
+        tab.textPos = newText;
+        editorPosEl.value = newText;
+        syncWordsFromPosText(newText);
+      }
+      saveAppData();
+      editor.blur();
     }
-}
 
     function refreshQuickAddGroupOptions() {
       quickAddGroupSelectEl.innerHTML = "";
@@ -2223,7 +1735,7 @@ function appendTokens(t, arr) {
     }
     window.closeWordsEditModal = closeWordsEditModal;
 
-        function renderWordsEditList() {
+    function renderWordsEditList() {
       const kind = wordsEditKind;
       const text = getTextByKind(kind);
       const tokens = getTokensFromText(text);
@@ -2311,7 +1823,6 @@ function appendTokens(t, arr) {
         weightInput.value = parsed.weight != null ? parsed.weight.toFixed(1) : "";
         weightInput.placeholder = "w";
 
-        // このチップだけの重みを変更し、テキストとUIを同期する関数
         function changeWeightForThis(delta) {
           const currentText = getTextByKind(kind);
           const tks = getTokensFromText(currentText);
@@ -2330,7 +1841,6 @@ function appendTokens(t, arr) {
           const keepCommaNow = hasTrailingComma(currentText);
           setTextFromTokens(kind, tks, keepCommaNow);
 
-          // UI側の表示も更新
           label.textContent = tks[idx];
           const parsedAfter = parseWeightToken(tks[idx]);
           if (parsedAfter.weight != null) {
@@ -2340,7 +1850,6 @@ function appendTokens(t, arr) {
           }
         }
 
-        // 長押し対応（クリック1回＋押し続けで連続）
         function setupHoldButton(btn, delta) {
           let holdTimeout = null;
           let repeatInterval = null;
@@ -2363,12 +1872,12 @@ function appendTokens(t, arr) {
           const start = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            changeWeightForThis(delta);  // 最初の1回
+            changeWeightForThis(delta);
             holdTimeout = setTimeout(() => {
               repeatInterval = setInterval(() => {
-                changeWeightForThis(delta);  // 長押し中に連続
+                changeWeightForThis(delta);
               }, 120);
-            }, 400); // 長押し判定時間
+            }, 400);
           };
 
           btn.addEventListener("mousedown", start);
@@ -2420,7 +1929,7 @@ function appendTokens(t, arr) {
           renderWordsEditList();
         };
 
-        // --- タッチ（スマホ）用ドラッグ ---
+        // --- タッチドラッグ ---
         chip.addEventListener("touchstart", (e) => {
           if (!e.touches || e.touches.length === 0) return;
           const t = e.touches[0];
@@ -2457,7 +1966,6 @@ function appendTokens(t, arr) {
 
           const currentIdx = idx;
 
-          // ドラッグしていなければ、複数選択モード時のトグル
           if (!info.dragging) {
             if (wordsMultiSelectMode) {
               if (selectedWordIndices.has(currentIdx)) {
@@ -2524,7 +2032,7 @@ function appendTokens(t, arr) {
 
         // --- PCマウス用ドラッグ ---
         chip.addEventListener("mousedown", (e) => {
-          if (e.button !== 0) return; // 左クリックのみ
+          if (e.button !== 0) return;
           dragInfoWordEdit = {
             startX: e.clientX,
             startY: e.clientY,
@@ -2919,6 +2427,7 @@ function appendTokens(t, arr) {
             presetPreviewEl.textContent = `【${preset.name}】\n` + preset.text;
 
             if (!presetMultiSelectMode) {
+              saveUndoBeforeChange(activeEditor);
               applyPresetsToActiveEditor([preset.text]);
               closePresetModal();
             } else {
@@ -2958,6 +2467,7 @@ function appendTokens(t, arr) {
         return p ? p.text : null;
       }).filter(v => !!v);
       if (texts.length === 0) return;
+      saveUndoBeforeChange(activeEditor);
       applyPresetsToActiveEditor(texts);
       presetSelectedItems = [];
       presetMultiSelectMode = false;
