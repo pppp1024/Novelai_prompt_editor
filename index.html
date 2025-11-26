@@ -2134,56 +2134,7 @@ chip.addEventListener("mouseup", (e) => {
 });
 
 
-          const target = document.elementFromPoint(e.clientX, e.clientY);
-          if (!target) return;
-          const targetChip = target.closest(".chip");
-          if (!targetChip || !targetChip.parentElement.isSameNode(chipsContainer)) return;
-          const toIndex = Number(targetChip.dataset.index);
-          if (Number.isNaN(toIndex)) return;
-
-          const currentText = getTextByKind(kind);
-          const tks = getTokensFromText(currentText);
-          const keepCommaNow = hasTrailingComma(currentText);
-
-          let blockIndices;
-          if (wordsMultiSelectMode && selectedWordIndices.size > 0) {
-            blockIndices = Array.from(selectedWordIndices).sort((a, b) => a - b);
-          } else {
-            blockIndices = [currentIdx];
-          }
-
-          const selSet = new Set(blockIndices);
-          const block = [];
-          const remain = [];
-          tks.forEach((v, i) => {
-            if (selSet.has(i)) block.push(v);
-            else remain.push(v);
-          });
-
-          let dropOriginal = toIndex;
-          let countBefore = 0;
-          blockIndices.forEach(i => {
-            if (i < dropOriginal) countBefore++;
-          });
-          let dropIndex = dropOriginal - countBefore;
-          if (dropIndex < 0) dropIndex = 0;
-          if (dropIndex > remain.length) dropIndex = remain.length;
-
-          const newTokens = remain.slice(0, dropIndex).concat(block, remain.slice(dropIndex));
-          setTextFromTokens(kind, newTokens, keepCommaNow);
-
-          if (wordsMultiSelectMode && block.length > 1) {
-            selectedWordIndices = new Set();
-            for (let i = 0; i < block.length; i++) {
-              selectedWordIndices.add(dropIndex + i);
-            }
-          } else if (wordsMultiSelectMode && block.length === 1) {
-            selectedWordIndices = new Set([dropIndex]);
-          }
-
-          renderWordsEditList();
-        });
-
+       
         chip.appendChild(label);
         chip.appendChild(plusBtn);
         chip.appendChild(minusBtn);
