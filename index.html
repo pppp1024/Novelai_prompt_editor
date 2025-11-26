@@ -1998,6 +1998,9 @@
             return;
           }
 
+          // ★ ドラッグで順番を変える前に Undo を積む
+          saveUndoBeforeChange(kind);
+
           if (!e.changedTouches || e.changedTouches.length === 0) return;
           const t = e.changedTouches[0];
           const target = document.elementFromPoint(t.clientX, t.clientY);
@@ -2100,6 +2103,9 @@ chip.addEventListener("mouseup", (e) => {
     }
     return;
   }
+
+  // ★ 並び替え前に Undo を積む
+  saveUndoBeforeChange(kind);
 
   // ドロップ位置にある chip を取得
   const target = document.elementFromPoint(e.clientX, e.clientY);
