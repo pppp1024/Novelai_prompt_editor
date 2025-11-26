@@ -1905,6 +1905,10 @@
         weightInput.onchange = (e) => {
           e.stopPropagation();
           const val = e.target.value.trim();
+
+          // ★ ここで Undo を積む
+          saveUndoBeforeChange(kind);
+          
           const currentText = getTextByKind(kind);
           const tks = getTokensFromText(currentText);
           if (idx < 0 || idx >= tks.length) return;
