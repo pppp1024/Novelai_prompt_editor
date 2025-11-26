@@ -1,88 +1,56 @@
 // undo-typing.js
-// テキストエリアの「手入力」に対しても Undo スタックを積む拡張
+// テキストエリアの「手入力」にも Undo を対応させるスクリプト
+// ※ app.js より後に読み込むこと前提
 
 (function () {
-  // 入力が止まってから何ミリ秒で「1まとまり」とみなすか
-  const TYPING_IDLE_MS = 1500;
+  // app.js がまだ読まれていない場合は何もしない
+  if (typeof pushUndo !== "function") {
+    console.warn("undo-typing.js: pushUndo が見つからないので何もしません。");
+    return;
+  }
 
-  // kind ごとの状態管理
-  const typingState = {
-    pos:       { snapshot: null, dirty: false, timer: null },
-    neg:       { snapshot: null, dirty: false, timer: null },
-    presetPos: { snapshot: null, dirty: false, timer: null },
-    presetNeg: { snapshot: null, dirty: false, timer: null },
+  // 対象となるテキストエリアを取得
+  const editorPosEl        = document.getElementById("editorPos");
+  const editorNegEl        = document.getElementById("editorNeg");
+  const presetEditorPosEl  = document.getElementById("presetEditorPos");
+  const presetEditorNegEl  = document.getElementById("presetEditorNeg");
+
+  // それぞれのテキストエリアごとに「最後に記録した値」を持っておく
+  const lastValues = {
+    pos:        editorPosEl       ? editorPosEl.value       : "",
+    neg:        editorNegEl       ? editorNegEl.value       : "",
+    presetPos:  presetEditorPosEl ? presetEditorPosEl.value : "",
+    presetNeg:  presetEditorNegEl ? presetEditorNegEl.value : ""
   };
 
   /**
-   * あるテキストエリアに「手入力 Undo」機能をセットアップ
-   * @param {HTMLTextAreaElement} el
+   * テキストエリア1つに Undo 用の入力監視を設定
    * @param {"pos"|"neg"|"presetPos"|"presetNeg"} kind
+   * @param {HTMLTextAreaElement|null} el
    */
-  function setupTypingUndo(el, kind) {
-    if (!el) return;
-    const state = typingState[kind];
+  function setupUndoForEditor(kind, el) {
+    if (!el) return; // 要素がなければ何もしない
 
-    // フォーカスが当たったタイミングで「現在のテキスト」をスナップショットしておく
-    el.addEventListener("focus", () => {
-      if (typeof getTextByKind === "function") {
-        state.snapshot = getTextByKind(kind); // 編集前のテキスト
-      } else {
-        state.snapshot = el.value;
-      }
-      state.dirty = false;
-      if (state.timer) {
-        clearTimeout(state.timer);
-        state.timer = null;
-      }
-    });
-
-    // 入力があるたびに呼ばれる
     el.addEventListener("input", () => {
-      // app.js 側の input ハンドラが先に走ってテキストを更新したあとでここに来る
+      const prev = lastValues[kind];
+      const current = el.value;
 
-      // まだ今回の「入力まとまり」で Undo を積んでいない場合だけ一度だけ積む
-      if (!state.dirty && state.snapshot != null && typeof pushUndo === "function") {
-        // snapshot 時点（＝今回の編集を始める前）の状態を Undo に積む
-        pushUndo(kind, state.snapshot);
-        state.dirty = true;
-      }
+      // 値が変化していなければ何もしない
+      if (prev === current) return;
 
-      // タイマーをリセットして、入力が止まったタイミングで「新しい安定状態」を snapshot にする
-      if (state.timer) {
-        clearTimeout(state.timer);
-      }
-      state.timer = setTimeout(() => {
-        // 現在のテキストを「次の入力の起点」として記録
-        if (typeof getTextByKind === "function") {
-          state.snapshot = getTextByKind(kind);
-        } else {
-          state.snapshot = el.value;
-        }
-        state.dirty = false;
-        state.timer = null;
-      }, TYPING_IDLE_MS);
+      // 一つ前の状態を Undo に積む
+      pushUndo(kind, prev);
+
+      // いまの内容を「最新状態」として覚えておく
+      lastValues[kind] = current;
     });
   }
 
-  // ページ読み込み完了後にセットアップ
-  window.addEventListener("load", () => {
-    // app.js 内で定義されたテキストエリア変数にフックする
-    // （app.js が先に読み込まれている前提）
-    try {
-      if (typeof editorPosEl !== "undefined") {
-        setupTypingUndo(editorPosEl, "pos");
-      }
-      if (typeof editorNegEl !== "undefined") {
-        setupTypingUndo(editorNegEl, "neg");
-      }
-      if (typeof presetEditorPosEl !== "undefined") {
-        setupTypingUndo(presetEditorPosEl, "presetPos");
-      }
-      if (typeof presetEditorNegEl !== "undefined") {
-        setupTypingUndo(presetEditorNegEl, "presetNeg");
-      }
-    } catch (e) {
-      console.warn("undo-typing.js setup error:", e);
-    }
-  });
+  // 各テキストエリアに設定
+  setupUndoForEditor("pos",        editorPosEl);
+  setupUndoForEditor("neg",        editorNegEl);
+  setupUndoForEditor("presetPos",  presetEditorPosEl);
+  setupUndoForEditor("presetNeg",  presetEditorNegEl);
+
+  console.log("undo-typing.js: 手入力用 Undo 監視を設定しました。");
 })();
