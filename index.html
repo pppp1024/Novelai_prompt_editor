@@ -1002,6 +1002,10 @@
     function applyWeightToSelected(delta) {
       if (!wordsMultiSelectMode || selectedWordIndices.size === 0) return;
       const kind = wordsEditKind;
+
+       // ★ ここで Undo を積む
+      saveUndoBeforeChange(kind)
+      
       const text = getTextByKind(kind);
       const tokens = getTokensFromText(text);
       const keepComma = hasTrailingComma(text);
@@ -1027,6 +1031,10 @@
     function deleteSelectedWords() {
       if (!wordsMultiSelectMode || selectedWordIndices.size === 0) return;
       const kind = wordsEditKind;
+
+      // ★ ここで Undo を積む
+      saveUndoBeforeChange(kind);
+      
       const text = getTextByKind(kind);
       const tokens = getTokensFromText(text);
       const keepComma = hasTrailingComma(text);
