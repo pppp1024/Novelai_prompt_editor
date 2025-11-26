@@ -419,15 +419,21 @@
     <div class="chips" id="wordsNeg" style="display:none;"></div>
   </div>
 
-  <!-- プリセット作成用ビュー -->
+  <!-- プリセット作成用ビュー（ポジ＋ネガ 両方） -->
   <div id="presetView" style="display:none;">
-    <div class="section-label">プリセット作成用テキスト</div>
+    <div class="section-label">プリセット用ポジティブプロンプト</div>
     <div class="editor-wrapper">
-      <textarea id="presetEditor" class="textarea-pos"
-        placeholder="ここに保存したいプリセットの内容を書きます（例: masterpiece, best quality, ultra-detailed, ）"></textarea>
+      <textarea id="presetEditorPos" class="textarea-pos"
+        placeholder="ここにプリセットのポジティブプロンプトを書きます（例: masterpiece, best quality, ultra-detailed, ）"></textarea>
     </div>
 
-    <!-- 1段目：候補 / 単語編集 / カテゴリ / 「に」 / 追加 -->
+    <div class="section-label">プリセット用ネガティブプロンプト</div>
+    <div class="editor-wrapper">
+      <textarea id="presetEditorNeg" class="textarea-neg"
+        placeholder="ここにプリセットのネガティブプロンプトを書きます（例: lowres, blurry, worst quality, ）"></textarea>
+    </div>
+
+    <!-- 1段目：候補 / 単語編集 / 「に」 / 追加 / Undo / Clear -->
     <div class="toolbar">
       <button id="presetOpenCandidatesBtn">候補</button>
       <button id="presetEditWordsBtn">単語編集</button>
@@ -563,8 +569,8 @@
 
         <p><b>プリセット</b></p>
         <ul>
-          <li>上部タブの「プリセット」から、プリセット本文を作成し、カテゴリごとに保存できます。</li>
-          <li>メイン画面の「プリセット」ボタンから、保存済みプリセットをポジ／ネガ側に挿入できます。複数選択モードでまとめて適用も可能です。</li>
+          <li>上部タブの「プリセット」から、ポジティブ／ネガティブ両方の本文を作成し、カテゴリごとに保存できます。</li>
+          <li>メイン画面の「プリセット」ボタンから、保存済みプリセットのポジ／ネガをそれぞれのテキストに一括で挿入できます。複数選択モードでまとめて適用も可能です。</li>
         </ul>
 
         <p><b>並び替えのヒント</b><br>
@@ -612,19 +618,22 @@
       tabs: [
         { id: "tab-1", title: "タブ1", textPos: "", textNeg: "" }
       ],
+      // ★ プリセットは「ポジ＋ネガ」両方を持つ
       presetGroups: [
         {
           id: "pg1",
           name: "共通プリセット",
           items: [
-            { id: "preset-1", name: "高品質基本", text: "masterpiece, best quality, ultra-detailed, " },
-            { id: "preset-2", name: "ネガティブ基本", text: "lowres, blurry, worst quality, " }
+            { id: "preset-1", name: "高品質基本", textPos: "masterpiece, best quality, ultra-detailed, ", textNeg: "" },
+            { id: "preset-2", name: "ネガティブ基本", textPos: "", textNeg: "lowres, blurry, worst quality, " }
           ]
         }
       ],
       /* ★ 候補は別ファイルから読み込む */
       candidateGroups: (window.CANDIDATE_GROUPS || []),
-      presetDraftText: "",
+      // プリセット作成用の下書き（ポジ／ネガ）
+      presetDraftPosText: "",
+      presetDraftNegText: "",
       candidateCollapsed: {}
     };
 
@@ -654,7 +663,20 @@
           });
           appData.tabs = parsed.tabs;
         }
+
+        // ★ プリセット: text → textPos/textNeg へマイグレーション
         if (parsed.presetGroups) {
+          parsed.presetGroups.forEach(g => {
+            if (!Array.isArray(g.items)) return;
+            g.items.forEach(p => {
+              if (p.textPos === undefined && p.text !== undefined) {
+                p.textPos = p.text;
+              }
+              if (p.textNeg === undefined) {
+                p.textNeg = "";
+              }
+            });
+          });
           appData.presetGroups = parsed.presetGroups;
         } else if (parsed.presets) {
           let items = [];
@@ -663,23 +685,37 @@
               items = parsed.presets.map((txt, idx) => ({
                 id: "preset-migrated-" + idx,
                 name: "プリセット" + (idx + 1),
-                text: txt
+                textPos: txt,
+                textNeg: ""
               }));
             } else if (typeof parsed.presets[0] === "object") {
-              items = parsed.presets;
+              items = parsed.presets.map((p, idx) => ({
+                id: p.id || ("preset-migrated-" + idx),
+                name: p.name || ("プリセット" + (idx + 1)),
+                textPos: p.text || p.textPos || "",
+                textNeg: p.textNeg || ""
+              }));
             }
           }
           appData.presetGroups = [
             { id: "pg_migrated", name: "未分類", items }
           ];
         }
+
         if (parsed.candidateGroups) {
-          // バックアップに candidateGroups が含まれていればそちらを優先
           appData.candidateGroups = parsed.candidateGroups;
         }
-        if (parsed.presetDraftText) {
-          appData.presetDraftText = parsed.presetDraftText;
+
+        // 旧フィールドから下書きを移行
+        if (parsed.presetDraftPosText !== undefined) {
+          appData.presetDraftPosText = parsed.presetDraftPosText;
+        } else if (parsed.presetDraftText !== undefined) {
+          appData.presetDraftPosText = parsed.presetDraftText;
         }
+        if (parsed.presetDraftNegText !== undefined) {
+          appData.presetDraftNegText = parsed.presetDraftNegText;
+        }
+
         if (parsed.candidateCollapsed) {
           appData.candidateCollapsed = parsed.candidateCollapsed;
         }
@@ -692,7 +728,8 @@
     appData.candidateCollapsed = candidateCollapsed;
 
     let currentTabId = appData.tabs[0].id;
-    let activeEditor = "pos";    // "pos" | "neg" | "preset"
+    // "pos" | "neg" | "presetPos" | "presetNeg"
+    let activeEditor = "pos";
     let activeView = "main";     // "main" | "preset"
 
     const tabsEl = document.getElementById("tabs");
@@ -701,7 +738,8 @@
 
     const editorPosEl = document.getElementById("editorPos");
     const editorNegEl = document.getElementById("editorNeg");
-    const presetEditorEl = document.getElementById("presetEditor");
+    const presetEditorPosEl = document.getElementById("presetEditorPos");
+    const presetEditorNegEl = document.getElementById("presetEditorNeg");
 
     const wordsPosEl = document.getElementById("wordsPos");
     const wordsNegEl = document.getElementById("wordsNeg");
@@ -718,7 +756,8 @@
     const undoStack = {
       pos: [],
       neg: [],
-      preset: []
+      presetPos: [],
+      presetNeg: []
     };
     const UNDO_LIMIT = 50;
 
@@ -764,6 +803,7 @@
     const wordsEditModal = document.getElementById("wordsEditModal");
     const wordsEditTitleEl = document.getElementById("wordsEditTitle");
     const wordsEditListEl = document.getElementById("wordsEditList");
+    // "pos" | "neg" | "presetPos" | "presetNeg"
     let wordsEditKind = "pos";
     let dragInfoWordEdit = null;
     let wordsMultiSelectMode = false;
@@ -835,7 +875,25 @@
         });
         if (!parsed.candidateGroups) parsed.candidateGroups = [];
         if (!parsed.presetGroups) parsed.presetGroups = [];
-        if (parsed.presetDraftText === undefined) parsed.presetDraftText = "";
+
+        // ★ バックアップ復元時もプリセットをマイグレーション
+        parsed.presetGroups.forEach(g => {
+          if (!Array.isArray(g.items)) return;
+          g.items.forEach(p => {
+            if (p.textPos === undefined && p.text !== undefined) {
+              p.textPos = p.text;
+            }
+            if (p.textNeg === undefined) {
+              p.textNeg = "";
+            }
+          });
+        });
+
+        if (parsed.presetDraftPosText === undefined && parsed.presetDraftText !== undefined) {
+          parsed.presetDraftPosText = parsed.presetDraftText;
+        }
+        if (parsed.presetDraftPosText === undefined) parsed.presetDraftPosText = "";
+        if (parsed.presetDraftNegText === undefined) parsed.presetDraftNegText = "";
         if (!parsed.candidateCollapsed) parsed.candidateCollapsed = {};
 
         appData = parsed;
@@ -916,8 +974,9 @@
       } else {
         mainView.style.display = "none";
         presetView.style.display = "block";
-        presetEditorEl.value = appData.presetDraftText || "";
-        activeEditor = "preset";
+        presetEditorPosEl.value = appData.presetDraftPosText || "";
+        presetEditorNegEl.value = appData.presetDraftNegText || "";
+        activeEditor = "presetPos";
         renderPresetCategoryOptions();
       }
     }
@@ -934,9 +993,10 @@
     }
 
     function getTextByKind(kind) {
-      if (kind === "pos") return editorPosEl.value;
-      if (kind === "neg") return editorNegEl.value;
-      if (kind === "preset") return presetEditorEl.value || "";
+      if (kind === "pos") return editorPosEl.value || "";
+      if (kind === "neg") return editorNegEl.value || "";
+      if (kind === "presetPos") return presetEditorPosEl.value || "";
+      if (kind === "presetNeg") return presetEditorNegEl.value || "";
       return "";
     }
 
@@ -958,9 +1018,13 @@
         editorNegEl.value = newText;
         saveAppData();
         syncWordsFromNegText(newText);
-      } else if (kind === "preset") {
-        appData.presetDraftText = newText;
-        presetEditorEl.value = newText;
+      } else if (kind === "presetPos") {
+        appData.presetDraftPosText = newText;
+        presetEditorPosEl.value = newText;
+        saveAppData();
+      } else if (kind === "presetNeg") {
+        appData.presetDraftNegText = newText;
+        presetEditorNegEl.value = newText;
         saveAppData();
       }
     }
@@ -1141,11 +1205,18 @@
       syncWordsFromNegText(prev);
     };
 
+    // ★ プリセットタブの Undo（フォーカス中のポジ or ネガに対して）
     presetUndoBtn.onclick = () => {
-      const prev = popUndo("preset");
+      const kind = (activeEditor === "presetNeg") ? "presetNeg" : "presetPos";
+      const prev = popUndo(kind);
       if (prev == null) return;
-      appData.presetDraftText = prev;
-      presetEditorEl.value = prev;
+      if (kind === "presetNeg") {
+        appData.presetDraftNegText = prev;
+        presetEditorNegEl.value = prev;
+      } else {
+        appData.presetDraftPosText = prev;
+        presetEditorPosEl.value = prev;
+      }
       saveAppData();
     };
 
@@ -1168,14 +1239,20 @@
       syncWordsFromNegText(editorNegEl.value);
     });
 
-    presetEditorEl.addEventListener("input", () => {
-      appData.presetDraftText = presetEditorEl.value;
+    // プリセットタブのテキストエリア入力
+    presetEditorPosEl.addEventListener("input", () => {
+      appData.presetDraftPosText = presetEditorPosEl.value;
+      saveAppData();
+    });
+    presetEditorNegEl.addEventListener("input", () => {
+      appData.presetDraftNegText = presetEditorNegEl.value;
       saveAppData();
     });
 
     editorPosEl.addEventListener("focus", () => { activeEditor = "pos"; });
     editorNegEl.addEventListener("focus", () => { activeEditor = "neg"; });
-    presetEditorEl.addEventListener("focus", () => { activeEditor = "preset"; });
+    presetEditorPosEl.addEventListener("focus", () => { activeEditor = "presetPos"; });
+    presetEditorNegEl.addEventListener("focus", () => { activeEditor = "presetNeg"; });
 
     document.getElementById("copyPosBtn").onclick = async () => {
       try {
@@ -1209,9 +1286,13 @@
         editorNegEl.value = "";
         saveAppData();
         syncWordsFromNegText("");
-      } else if (kind === "preset") {
-        appData.presetDraftText = "";
-        presetEditorEl.value = "";
+      } else if (kind === "presetPos") {
+        appData.presetDraftPosText = "";
+        presetEditorPosEl.value = "";
+        saveAppData();
+      } else if (kind === "presetNeg") {
+        appData.presetDraftNegText = "";
+        presetEditorNegEl.value = "";
         saveAppData();
       }
     }
@@ -1226,8 +1307,9 @@
       clearEditor("neg");
     };
     document.getElementById("presetClearBtn").onclick = () => {
-      saveUndoBeforeChange("preset");
-      clearEditor("preset");
+      const kind = (activeEditor === "presetNeg") ? "presetNeg" : "presetPos";
+      saveUndoBeforeChange(kind);
+      clearEditor(kind);
     };
 
     // タブ追加
@@ -1361,7 +1443,8 @@
       candidatePage.style.display = "flex";
     };
     document.getElementById("presetOpenCandidatesBtn").onclick = () => {
-      activeEditor = "preset";
+      // 現在のフォーカスがプリセットネガならそのまま、そうでなければポジ扱い
+      if (activeEditor !== "presetNeg") activeEditor = "presetPos";
       candidateEditMode = false;
       candidateMultiSelectMode = false;
       candidateSelectedItems = [];
@@ -1489,22 +1572,30 @@
       if (!values || values.length === 0) return;
       const combined = values.join(", ") + ", ";
 
-      if (activeEditor === "preset") {
-        const originalText = presetEditorEl.value;
-        const pos = presetEditorEl.selectionStart || originalText.length;
+      // プリセットタブ（ポジ／ネガ）
+      if (activeEditor === "presetPos" || activeEditor === "presetNeg") {
+        const editor = (activeEditor === "presetNeg") ? presetEditorNegEl : presetEditorPosEl;
+        const originalText = editor.value;
+        const pos = editor.selectionStart || originalText.length;
         const left = originalText.slice(0, pos);
         const right = originalText.slice(pos);
         const insert = (left.trim().length === 0 || left.endsWith(", ") || left.endsWith(" "))
           ? combined
           : " " + combined;
         const newText = left + insert + right;
-        appData.presetDraftText = newText;
-        presetEditorEl.value = newText;
+
+        if (activeEditor === "presetNeg") {
+          appData.presetDraftNegText = newText;
+        } else {
+          appData.presetDraftPosText = newText;
+        }
+        editor.value = newText;
         saveAppData();
-        presetEditorEl.blur();
+        editor.blur();
         return;
       }
 
+      // メイン（ポジ／ネガ）
       const tab = getCurrentTab();
       if (!tab) return;
       const targetKind = (activeEditor === "neg") ? "neg" : "pos";
@@ -1729,8 +1820,13 @@
       wordsEditModal.style.display = "flex";
     };
     document.getElementById("presetEditWordsBtn").onclick = () => {
-      wordsEditKind = "preset";
-      wordsEditTitleEl.textContent = "単語編集（プリセット）";
+      if (activeEditor === "presetNeg") {
+        wordsEditKind = "presetNeg";
+        wordsEditTitleEl.textContent = "単語編集（プリセット・ネガティブ）";
+      } else {
+        wordsEditKind = "presetPos";
+        wordsEditTitleEl.textContent = "単語編集（プリセット・ポジティブ）";
+      }
       wordsMultiSelectMode = false;
       selectedWordIndices.clear();
       renderWordsEditList();
@@ -1983,7 +2079,6 @@
           dragInfoWordEdit = null;
           info.chipEl.classList.remove("dragging");
 
-          // ドラッグ開始時に記録した index を使う
           const currentIdx = info.index;
 
           if (!info.dragging) {
@@ -2055,111 +2150,103 @@
 
         // --- PCマウス用ドラッグ ---
         chip.addEventListener("mousedown", (e) => {
-  if (e.button !== 0) return;
-  dragInfoWordEdit = {
-    startX: e.clientX,
-    startY: e.clientY,
-    index: idx,     // ドラッグ開始時の index を記録
-    chipEl: chip,
-    dragging: false
-  };
-});
+          if (e.button !== 0) return;
+          dragInfoWordEdit = {
+            startX: e.clientX,
+            startY: e.clientY,
+            index: idx,     // ドラッグ開始時の index を記録
+            chipEl: chip,
+            dragging: false
+          };
+        });
 
-chip.addEventListener("mousemove", (e) => {
-  if (!dragInfoWordEdit) return;
-  // ★ ここは「どの chip 上でも」ドラッグ中であれば動いてほしいので
-  //    chip 一致チェックはしなくてOK
-  const dx = e.clientX - dragInfoWordEdit.startX;
-  const dy = e.clientY - dragInfoWordEdit.startY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  if (!dragInfoWordEdit.dragging && dist > 5) {
-    dragInfoWordEdit.dragging = true;
-    dragInfoWordEdit.chipEl.classList.add("dragging");
-  }
-  if (dragInfoWordEdit.dragging) {
-    e.preventDefault();
-  }
-});
+        chip.addEventListener("mousemove", (e) => {
+          if (!dragInfoWordEdit) return;
+          const dx = e.clientX - dragInfoWordEdit.startX;
+          const dy = e.clientY - dragInfoWordEdit.startY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (!dragInfoWordEdit.dragging && dist > 5) {
+            dragInfoWordEdit.dragging = true;
+            dragInfoWordEdit.chipEl.classList.add("dragging");
+          }
+          if (dragInfoWordEdit.dragging) {
+            e.preventDefault();
+          }
+        });
 
-chip.addEventListener("mouseup", (e) => {
-  if (!dragInfoWordEdit) return;
-  // ★ ここも chip 一致チェックは不要
-  const info = dragInfoWordEdit;
-  dragInfoWordEdit = null;
-  info.chipEl.classList.remove("dragging");
+        chip.addEventListener("mouseup", (e) => {
+          if (!dragInfoWordEdit) return;
+          const info = dragInfoWordEdit;
+          dragInfoWordEdit = null;
+          info.chipEl.classList.remove("dragging");
 
-  // ★ 常に「ドラッグ開始時の index」を使う
-  const currentIdx = info.index;
+          const currentIdx = info.index;
 
-  if (!info.dragging) {
-    // 単なるクリック → 複数選択モードのON/OFFだけ
-    if (wordsMultiSelectMode) {
-      if (selectedWordIndices.has(currentIdx)) {
-        selectedWordIndices.delete(currentIdx);
-      } else {
-        selectedWordIndices.add(currentIdx);
-      }
-      renderWordsEditList();
-    }
-    return;
-  }
+          if (!info.dragging) {
+            if (wordsMultiSelectMode) {
+              if (selectedWordIndices.has(currentIdx)) {
+                selectedWordIndices.delete(currentIdx);
+              } else {
+                selectedWordIndices.add(currentIdx);
+              }
+              renderWordsEditList();
+            }
+            return;
+          }
 
-  // ★ 並び替え前に Undo を積む
-  saveUndoBeforeChange(kind);
+          // ★ 並び替え前に Undo を積む
+          saveUndoBeforeChange(kind);
 
-  // ドロップ位置にある chip を取得
-  const target = document.elementFromPoint(e.clientX, e.clientY);
-  if (!target) return;
-  const targetChip = target.closest(".chip");
-  if (!targetChip || !targetChip.parentElement.isSameNode(chipsContainer)) return;
-  const toIndex = Number(targetChip.dataset.index);
-  if (Number.isNaN(toIndex)) return;
+          const target = document.elementFromPoint(e.clientX, e.clientY);
+          if (!target) return;
+          const targetChip = target.closest(".chip");
+          if (!targetChip || !targetChip.parentElement.isSameNode(chipsContainer)) return;
+          const toIndex = Number(targetChip.dataset.index);
+          if (Number.isNaN(toIndex)) return;
 
-  const currentText = getTextByKind(kind);
-  const tks = getTokensFromText(currentText);
-  const keepCommaNow = hasTrailingComma(currentText);
+          const currentText = getTextByKind(kind);
+          const tks = getTokensFromText(currentText);
+          const keepCommaNow = hasTrailingComma(currentText);
 
-  let blockIndices;
-  if (wordsMultiSelectMode && selectedWordIndices.size > 0) {
-    blockIndices = Array.from(selectedWordIndices).sort((a, b) => a - b);
-  } else {
-    blockIndices = [currentIdx];
-  }
+          let blockIndices;
+          if (wordsMultiSelectMode && selectedWordIndices.size > 0) {
+            blockIndices = Array.from(selectedWordIndices).sort((a, b) => a - b);
+          } else {
+            blockIndices = [currentIdx];
+          }
 
-  const selSet = new Set(blockIndices);
-  const block = [];
-  const remain = [];
-  tks.forEach((v, i) => {
-    if (selSet.has(i)) block.push(v);
-    else remain.push(v);
-  });
+          const selSet = new Set(blockIndices);
+          const block = [];
+          const remain = [];
+          tks.forEach((v, i) => {
+            if (selSet.has(i)) block.push(v);
+            else remain.push(v);
+          });
 
-  let dropOriginal = toIndex;
-  let countBefore = 0;
-  blockIndices.forEach(i => {
-    if (i < dropOriginal) countBefore++;
-  });
-  let dropIndex = dropOriginal - countBefore;
-  if (dropIndex < 0) dropIndex = 0;
-  if (dropIndex > remain.length) dropIndex = remain.length;
+          let dropOriginal = toIndex;
+          let countBefore = 0;
+          blockIndices.forEach(i => {
+            if (i < dropOriginal) countBefore++;
+          });
+          let dropIndex = dropOriginal - countBefore;
+          if (dropIndex < 0) dropIndex = 0;
+          if (dropIndex > remain.length) dropIndex = remain.length;
 
-  const newTokens = remain.slice(0, dropIndex).concat(block, remain.slice(dropIndex));
-  setTextFromTokens(kind, newTokens, keepCommaNow);
+          const newTokens = remain.slice(0, dropIndex).concat(block, remain.slice(dropIndex));
+          setTextFromTokens(kind, newTokens, keepCommaNow);
 
-  if (wordsMultiSelectMode && block.length > 1) {
-    selectedWordIndices = new Set();
-    for (let i = 0; i < block.length; i++) {
-      selectedWordIndices.add(dropIndex + i);
-    }
-  } else if (wordsMultiSelectMode && block.length === 1) {
-    selectedWordIndices = new Set([dropIndex]);
-  }
+          if (wordsMultiSelectMode && block.length > 1) {
+            selectedWordIndices = new Set();
+            for (let i = 0; i < block.length; i++) {
+              selectedWordIndices.add(dropIndex + i);
+            }
+          } else if (wordsMultiSelectMode && block.length === 1) {
+            selectedWordIndices = new Set([dropIndex]);
+          }
 
-  renderWordsEditList();
-});
+          renderWordsEditList();
+        });
 
-
-       
         chip.appendChild(label);
         chip.appendChild(plusBtn);
         chip.appendChild(minusBtn);
@@ -2371,19 +2458,32 @@ chip.addEventListener("mouseup", (e) => {
             nameRow.appendChild(pnameInput);
             nameRow.appendChild(pDelBtn);
 
-            const textRow = document.createElement("div");
-            textRow.className = "candidate-row";
-
-            const textArea = document.createElement("textarea");
-            textArea.value = preset.text;
-            textArea.oninput = (e) => {
-              preset.text = e.target.value;
+            // テキスト編集（ポジ／ネガ）
+            const textRowPos = document.createElement("div");
+            textRowPos.className = "candidate-row";
+            const textAreaPos = document.createElement("textarea");
+            textAreaPos.placeholder = "ポジティブ";
+            textAreaPos.value = preset.textPos || "";
+            textAreaPos.oninput = (e) => {
+              preset.textPos = e.target.value;
               saveAppData();
             };
+            textRowPos.appendChild(textAreaPos);
 
-            textRow.appendChild(textArea);
+            const textRowNeg = document.createElement("div");
+            textRowNeg.className = "candidate-row";
+            const textAreaNeg = document.createElement("textarea");
+            textAreaNeg.placeholder = "ネガティブ";
+            textAreaNeg.value = preset.textNeg || "";
+            textAreaNeg.oninput = (e) => {
+              preset.textNeg = e.target.value;
+              saveAppData();
+            };
+            textRowNeg.appendChild(textAreaNeg);
+
             row.appendChild(nameRow);
-            row.appendChild(textRow);
+            row.appendChild(textRowPos);
+            row.appendChild(textRowNeg);
             itemsContainer.appendChild(row);
           });
         } else {
@@ -2456,11 +2556,16 @@ chip.addEventListener("mouseup", (e) => {
           }
 
           b.onclick = () => {
-            presetPreviewEl.textContent = `【${preset.name}】\n` + preset.text;
+            presetPreviewEl.textContent =
+              `【${preset.name}】\n` +
+              "[ポジティブ]\n" + (preset.textPos || "") + "\n\n" +
+              "[ネガティブ]\n" + (preset.textNeg || "");
 
             if (!presetMultiSelectMode) {
-              saveUndoBeforeChange(activeEditor);
-              applyPresetsToActiveEditor([preset.text]);
+              // プリセット適用前にポジ／ネガ両方に Undo を積む
+              saveUndoBeforeChange("pos");
+              saveUndoBeforeChange("neg");
+              applyPresetsToCurrentTab([preset]);
               closePresetModal();
             } else {
               const i = presetSelectedItems.findIndex(
@@ -2492,15 +2597,17 @@ chip.addEventListener("mouseup", (e) => {
 
     presetMultiAddBtn.onclick = () => {
       if (!presetMultiSelectMode || presetSelectedItems.length === 0) return;
-      const texts = presetSelectedItems.map(sel => {
+      const presets = presetSelectedItems.map(sel => {
         const g = appData.presetGroups.find(gg => gg.id === sel.groupId);
         if (!g) return null;
         const p = g.items[sel.index];
-        return p ? p.text : null;
+        return p || null;
       }).filter(v => !!v);
-      if (texts.length === 0) return;
-      saveUndoBeforeChange(activeEditor);
-      applyPresetsToActiveEditor(texts);
+      if (presets.length === 0) return;
+
+      saveUndoBeforeChange("pos");
+      saveUndoBeforeChange("neg");
+      applyPresetsToCurrentTab(presets);
       presetSelectedItems = [];
       presetMultiSelectMode = false;
       presetMultiToggleEl.checked = false;
@@ -2508,27 +2615,39 @@ chip.addEventListener("mouseup", (e) => {
       closePresetModal();
     };
 
-    function applyPresetsToActiveEditor(texts) {
+    // ★ プリセットを「現在のタブ」に適用（ポジ／ネガ両方）
+    function applyPresetsToCurrentTab(presets) {
       const tab = getCurrentTab();
       if (!tab) return;
-      const targetKind = (activeEditor === "neg") ? "neg" : "pos";
-      const baseText = (targetKind === "neg") ? (tab.textNeg || "") : (tab.textPos || "");
-      const combinedText = texts
-        .map(t => t == null ? "" : String(t).trim())
-        .filter(t => t.length > 0)
-        .join("\n");
-      if (!combinedText) return;
 
-      const newText = (baseText ? baseText + "\n" : "") + combinedText;
+      let basePos = tab.textPos || "";
+      let baseNeg = tab.textNeg || "";
+      const posParts = [];
+      const negParts = [];
 
-      if (targetKind === "neg") {
-        tab.textNeg = newText;
-        editorNegEl.value = newText;
-        syncWordsFromNegText(newText);
-      } else {
-        tab.textPos = newText;
-        editorPosEl.value = newText;
-        syncWordsFromPosText(newText);
+      presets.forEach(p => {
+        if (!p) return;
+        const tp = (p.textPos || "").trim();
+        const tn = (p.textNeg || "").trim();
+        if (tp) posParts.push(tp);
+        if (tn) negParts.push(tn);
+      });
+
+      if (posParts.length === 0 && negParts.length === 0) return;
+
+      if (posParts.length > 0) {
+        const combinedPos = posParts.join("\n");
+        const newPos = basePos ? (basePos + "\n" + combinedPos) : combinedPos;
+        tab.textPos = newPos;
+        editorPosEl.value = newPos;
+        syncWordsFromPosText(newPos);
+      }
+      if (negParts.length > 0) {
+        const combinedNeg = negParts.join("\n");
+        const newNeg = baseNeg ? (baseNeg + "\n" + combinedNeg) : combinedNeg;
+        tab.textNeg = newNeg;
+        editorNegEl.value = newNeg;
+        syncWordsFromNegText(newNeg);
       }
       saveAppData();
     }
@@ -2544,9 +2663,10 @@ chip.addEventListener("mouseup", (e) => {
 
     // --- プリセット作成（追加）ボタン ---
     presetCreateBtn.onclick = () => {
-      const text = (appData.presetDraftText || "").trim();
-      if (!text) {
-        alert("テキストが空です。プリセットを作成できません。");
+      const textPos = (appData.presetDraftPosText || "").trim();
+      const textNeg = (appData.presetDraftNegText || "").trim();
+      if (!textPos && !textNeg) {
+        alert("ポジティブとネガティブのどちらも空です。プリセットを作成できません。");
         return;
       }
       const name = prompt("このプリセットの名前を入力してください。", "新しいプリセット");
@@ -2562,7 +2682,7 @@ chip.addEventListener("mouseup", (e) => {
       const group = appData.presetGroups.find(g => g.id === groupId) || appData.presetGroups[0];
 
       const id = "preset-" + Date.now();
-      group.items.push({ id, name, text });
+      group.items.push({ id, name, textPos, textNeg });
       saveAppData();
       alert(`カテゴリ「${group.name}」にプリセットを追加しました。`);
       renderPresetCategoryOptions();
