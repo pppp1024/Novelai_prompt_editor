@@ -1936,6 +1936,10 @@
         closeBtn.textContent = "×";
         closeBtn.onclick = (e) => {
           e.stopPropagation();
+
+          // ★ 削除前に Undo を積む
+          saveUndoBeforeChange(kind);
+
           const currentText = getTextByKind(kind);
           const tks = getTokensFromText(currentText);
           tks.splice(idx, 1);
