@@ -426,22 +426,32 @@
       <textarea id="presetEditorPos" class="textarea-pos"
         placeholder="ここにプリセットのポジティブプロンプトを書きます（例: masterpiece, best quality, ultra-detailed, ）"></textarea>
     </div>
+    <!-- ポジティブ用ツールバー -->
+    <div class="toolbar">
+      <button id="presetOpenCandidatesPosBtn">候補</button>
+      <button id="presetEditWordsPosBtn">単語編集</button>
+      <button id="presetPosUndoBtn">Undo</button>
+      <button id="presetPosClearBtn" title="すべて削除">🗑</button>
+    </div>
 
     <div class="section-label">プリセット用ネガティブプロンプト</div>
     <div class="editor-wrapper">
       <textarea id="presetEditorNeg" class="textarea-neg"
         placeholder="ここにプリセットのネガティブプロンプトを書きます（例: lowres, blurry, worst quality, ）"></textarea>
     </div>
-
-    <!-- 1段目：候補 / 単語編集 / 「に」 / 追加 / Undo / Clear -->
+    <!-- ネガティブ用ツールバー -->
     <div class="toolbar">
-      <button id="presetOpenCandidatesBtn">候補</button>
-      <button id="presetEditWordsBtn">単語編集</button>
+      <button id="presetOpenCandidatesNegBtn">候補</button>
+      <button id="presetEditWordsNegBtn">単語編集</button>
+      <button id="presetNegUndoBtn">Undo</button>
+      <button id="presetNegClearBtn" title="すべて削除">🗑</button>
+    </div>
+
+    <!-- プリセット登録用ツールバー -->
+    <div class="toolbar">
       <select id="presetCategorySelect" style="min-width:120px;"></select>
       <span class="small-ni">に</span>
       <button id="presetCreateBtn">追加</button>
-      <button id="presetUndoBtn">Undo</button>
-      <button id="presetClearBtn" title="すべて削除">🗑</button>
     </div>
     <!-- 2段目：カテゴリ編集 -->
     <div class="toolbar">
@@ -512,7 +522,18 @@
           <input type="checkbox" id="presetMultiToggle" />
           複数選択モード
         </label>
-        <button id="presetMultiAddBtn" style="font-size:12px;">選択したプリセットを追加</button>
+        <button id="presetMultiAddBtn" style="font-size:12px;">選択したプリセットを適用</button>
+        <span style="font-size:12px;">
+          適用方法：
+          <label style="margin-right:4px;">
+            <input type="radio" name="presetApplyMode" value="append" checked />
+            追加
+          </label>
+          <label>
+            <input type="radio" name="presetApplyMode" value="overwrite" />
+            上書き
+          </label>
+        </span>
       </div>
 
       <div id="presetSelectList"></div>
@@ -571,6 +592,7 @@
         <ul>
           <li>上部タブの「プリセット」から、ポジティブ／ネガティブ両方の本文を作成し、カテゴリごとに保存できます。</li>
           <li>メイン画面の「プリセット」ボタンから、保存済みプリセットのポジ／ネガをそれぞれのテキストに一括で挿入できます。複数選択モードでまとめて適用も可能です。</li>
+          <li>プリセットモーダルの「適用方法」で「追加／上書き」を選んでから適用してください。</li>
         </ul>
 
         <p><b>並び替えのヒント</b><br>
@@ -751,7 +773,8 @@
     // Undo 系
     const posUndoBtn = document.getElementById("posUndoBtn");
     const negUndoBtn = document.getElementById("negUndoBtn");
-    const presetUndoBtn = document.getElementById("presetUndoBtn");
+    const presetPosUndoBtn = document.getElementById("presetPosUndoBtn");
+    const presetNegUndoBtn = document.getElementById("presetNegUndoBtn");
 
     const undoStack = {
       pos: [],
@@ -798,6 +821,17 @@
     const presetMultiToggleEl = document.getElementById("presetMultiToggle");
     const presetMultiAddBtn = document.getElementById("presetMultiAddBtn");
     const presetPreviewEl = document.getElementById("presetPreview");
+
+    // 適用方法（追加 / 上書き）
+    let presetApplyMode = "append";
+    const presetApplyModeRadios = document.querySelectorAll('input[name="presetApplyMode"]');
+    presetApplyModeRadios.forEach(radio => {
+      radio.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          presetApplyMode = e.target.value; // "append" or "overwrite"
+        }
+      });
+    });
 
     // 単語編集モーダル関連
     const wordsEditModal = document.getElementById("wordsEditModal");
@@ -1205,18 +1239,19 @@
       syncWordsFromNegText(prev);
     };
 
-    // ★ プリセットタブの Undo（フォーカス中のポジ or ネガに対して）
-    presetUndoBtn.onclick = () => {
-      const kind = (activeEditor === "presetNeg") ? "presetNeg" : "presetPos";
-      const prev = popUndo(kind);
+    // ★ プリセットタブの Undo（ポジ／ネガそれぞれ）
+    presetPosUndoBtn.onclick = () => {
+      const prev = popUndo("presetPos");
       if (prev == null) return;
-      if (kind === "presetNeg") {
-        appData.presetDraftNegText = prev;
-        presetEditorNegEl.value = prev;
-      } else {
-        appData.presetDraftPosText = prev;
-        presetEditorPosEl.value = prev;
-      }
+      appData.presetDraftPosText = prev;
+      presetEditorPosEl.value = prev;
+      saveAppData();
+    };
+    presetNegUndoBtn.onclick = () => {
+      const prev = popUndo("presetNeg");
+      if (prev == null) return;
+      appData.presetDraftNegText = prev;
+      presetEditorNegEl.value = prev;
       saveAppData();
     };
 
@@ -1306,10 +1341,15 @@
       saveUndoBeforeChange("neg");
       clearEditor("neg");
     };
-    document.getElementById("presetClearBtn").onclick = () => {
-      const kind = (activeEditor === "presetNeg") ? "presetNeg" : "presetPos";
-      saveUndoBeforeChange(kind);
-      clearEditor(kind);
+    const presetPosClearBtn = document.getElementById("presetPosClearBtn");
+    const presetNegClearBtn = document.getElementById("presetNegClearBtn");
+    presetPosClearBtn.onclick = () => {
+      saveUndoBeforeChange("presetPos");
+      clearEditor("presetPos");
+    };
+    presetNegClearBtn.onclick = () => {
+      saveUndoBeforeChange("presetNeg");
+      clearEditor("presetNeg");
     };
 
     // タブ追加
@@ -1442,9 +1482,19 @@
       updateCandidateModeView();
       candidatePage.style.display = "flex";
     };
-    document.getElementById("presetOpenCandidatesBtn").onclick = () => {
-      // 現在のフォーカスがプリセットネガならそのまま、そうでなければポジ扱い
-      if (activeEditor !== "presetNeg") activeEditor = "presetPos";
+    // プリセットタブ用：ポジ
+    document.getElementById("presetOpenCandidatesPosBtn").onclick = () => {
+      activeEditor = "presetPos";
+      candidateEditMode = false;
+      candidateMultiSelectMode = false;
+      candidateSelectedItems = [];
+      candidateMultiToggleEl.checked = false;
+      updateCandidateModeView();
+      candidatePage.style.display = "flex";
+    };
+    // プリセットタブ用：ネガ
+    document.getElementById("presetOpenCandidatesNegBtn").onclick = () => {
+      activeEditor = "presetNeg";
       candidateEditMode = false;
       candidateMultiSelectMode = false;
       candidateSelectedItems = [];
@@ -1819,14 +1869,19 @@
       renderWordsEditList();
       wordsEditModal.style.display = "flex";
     };
-    document.getElementById("presetEditWordsBtn").onclick = () => {
-      if (activeEditor === "presetNeg") {
-        wordsEditKind = "presetNeg";
-        wordsEditTitleEl.textContent = "単語編集（プリセット・ネガティブ）";
-      } else {
-        wordsEditKind = "presetPos";
-        wordsEditTitleEl.textContent = "単語編集（プリセット・ポジティブ）";
-      }
+    // プリセットタブ用：ポジ
+    document.getElementById("presetEditWordsPosBtn").onclick = () => {
+      wordsEditKind = "presetPos";
+      wordsEditTitleEl.textContent = "単語編集（プリセット・ポジティブ）";
+      wordsMultiSelectMode = false;
+      selectedWordIndices.clear();
+      renderWordsEditList();
+      wordsEditModal.style.display = "flex";
+    };
+    // プリセットタブ用：ネガ
+    document.getElementById("presetEditWordsNegBtn").onclick = () => {
+      wordsEditKind = "presetNeg";
+      wordsEditTitleEl.textContent = "単語編集（プリセット・ネガティブ）";
       wordsMultiSelectMode = false;
       selectedWordIndices.clear();
       renderWordsEditList();
@@ -2616,12 +2671,13 @@
     };
 
     // ★ プリセットを「現在のタブ」に適用（ポジ／ネガ両方）
+    //    適用方法は presetApplyMode ("append" | "overwrite") で制御
     function applyPresetsToCurrentTab(presets) {
       const tab = getCurrentTab();
       if (!tab) return;
 
-      let basePos = tab.textPos || "";
-      let baseNeg = tab.textNeg || "";
+      const basePos = tab.textPos || "";
+      const baseNeg = tab.textNeg || "";
       const posParts = [];
       const negParts = [];
 
@@ -2635,20 +2691,32 @@
 
       if (posParts.length === 0 && negParts.length === 0) return;
 
-      if (posParts.length > 0) {
-        const combinedPos = posParts.join("\n");
-        const newPos = basePos ? (basePos + "\n" + combinedPos) : combinedPos;
-        tab.textPos = newPos;
-        editorPosEl.value = newPos;
-        syncWordsFromPosText(newPos);
+      const combinedPos = posParts.join("\n");
+      const combinedNeg = negParts.join("\n");
+
+      let newPos = basePos;
+      let newNeg = baseNeg;
+
+      if (presetApplyMode === "overwrite") {
+        // 上書き：値がある側だけ置き換え（空の方はそのまま）
+        if (posParts.length > 0) newPos = combinedPos;
+        if (negParts.length > 0) newNeg = combinedNeg;
+      } else {
+        // 追加：末尾に改行して足す
+        if (posParts.length > 0) {
+          newPos = basePos ? (basePos + "\n" + combinedPos) : combinedPos;
+        }
+        if (negParts.length > 0) {
+          newNeg = baseNeg ? (baseNeg + "\n" + combinedNeg) : combinedNeg;
+        }
       }
-      if (negParts.length > 0) {
-        const combinedNeg = negParts.join("\n");
-        const newNeg = baseNeg ? (baseNeg + "\n" + combinedNeg) : combinedNeg;
-        tab.textNeg = newNeg;
-        editorNegEl.value = newNeg;
-        syncWordsFromNegText(newNeg);
-      }
+
+      tab.textPos = newPos;
+      tab.textNeg = newNeg;
+      editorPosEl.value = newPos;
+      editorNegEl.value = newNeg;
+      syncWordsFromPosText(newPos);
+      syncWordsFromNegText(newNeg);
       saveAppData();
     }
 
