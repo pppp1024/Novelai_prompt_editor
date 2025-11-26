@@ -1832,6 +1832,9 @@
         weightInput.placeholder = "w";
 
         function changeWeightForThis(delta) {
+          // ★ まず Undo を積む（この時点ではまだ変更前のテキスト）
+          saveUndoBeforeChange(kind);
+          
           const currentText = getTextByKind(kind);
           const tks = getTokensFromText(currentText);
           if (idx < 0 || idx >= tks.length) return;
