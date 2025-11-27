@@ -131,16 +131,20 @@ const wordsPosEl = document.getElementById("wordsPos");
 const wordsNegEl = document.getElementById("wordsNeg");
 const suggestionsEl = document.getElementById("suggestions");
 
-// ★ サジェスト用の要素は body 直下にぶら下げておく
-//    → mainView/presetView の display:none の影響を受けないようにする
-if (suggestionsEl && suggestionsEl.parentElement !== document.body) {
-  document.body.appendChild(suggestionsEl);
-}
+// --- サジェスト用の状態 ---
+let currentSuggestionTarget = null; // { kind, editor }
+// IME入力中かどうか
+let composingKind = null;
 
-// ★ どのエディタに対するサジェストかを保持
-// kind: "pos" | "neg" | "presetPos" | "presetNeg"
-// editor: 対象の textarea 要素
-let currentSuggestionTarget = null;
+// --- キャレット位置計算用のダミー要素 ---
+const caretHelper = document.createElement("div");
+caretHelper.style.position = "fixed";
+caretHelper.style.visibility = "hidden";
+caretHelper.style.whiteSpace = "pre-wrap";
+caretHelper.style.wordWrap = "break-word";
+caretHelper.style.pointerEvents = "none";
+caretHelper.style.zIndex = 9999;
+document.body.appendChild(caretHelper);
 
 const presetCategorySelectEl = document.getElementById("presetCategorySelect");
 const presetCreateBtn = document.getElementById("presetCreateBtn");
@@ -388,8 +392,6 @@ function updateView() {
     activeEditor = "presetPos";
     renderPresetCategoryOptions();
   }
-// ★ タブ切り替え時はいったんサジェストを消す
-  hideSuggestions();
 }
 
 function getTokensFromText(text) {
@@ -546,16 +548,16 @@ function renderWords(tokens, kind) {
   });
 }
 
+// ======== ここからサジェスト新実装部分（カーソル直下＋IME対応＋全エディタ対応） ========
+
 // --- カーソル直前の「最後のフレーズ」を取得（カンマ・改行区切り） ---
 function getCurrentToken(text, cursorPos) {
   const left = text.slice(0, cursorPos);
-  // カンマ / 日本語カンマ / 改行で区切って最後の要素をとる
   const parts = left.split(/[,、\n]/);
   const last = parts[parts.length - 1] || "";
   return last.trim();
 }
 
-// 全候補一覧
 function getAllCandidates() {
   return appData.candidateGroups
     .flatMap(g => g.items)
@@ -569,17 +571,46 @@ function hideSuggestions() {
   currentSuggestionTarget = null;
 }
 
-// --- 共通サジェスト更新（どのエディタでもOK） ---
-function updateSuggestionsForEditor(editorEl, kind) {
-  if (!editorEl) {
-    hideSuggestions();
-    return;
-  }
+// --- キャレット位置にサジェストボックスを移動 ---
+function updateSuggestionPosition(editorEl) {
+  if (!editorEl) return;
+
+  const rect = editorEl.getBoundingClientRect();
+  const style = window.getComputedStyle(editorEl);
+
+  // textareaのスタイルをコピー
+  caretHelper.style.font = style.font;
+  caretHelper.style.padding = style.padding;
+  caretHelper.style.border = style.border;
+  caretHelper.style.boxSizing = style.boxSizing;
+  caretHelper.style.width = style.width;
+  caretHelper.style.whiteSpace = "pre-wrap";
+  caretHelper.style.wordWrap = "break-word";
+  caretHelper.style.textAlign = style.textAlign;
+
+  // 位置はtextareaと同じところに固定（画面座標）
+  caretHelper.style.left = rect.left + "px";
+  caretHelper.style.top = rect.top + "px";
+
   const text = editorEl.value || "";
   const cursorPos = editorEl.selectionStart || 0;
-  const currentToken = getCurrentToken(text, cursorPos);
+  const before = text.slice(0, cursorPos);
 
-  const candidates = getAllCandidates();
+  caretHelper.textContent = before;
+  const marker = document.createElement("span");
+  marker.textContent = "\u200b"; // ゼロ幅文字
+  caretHelper.appendChild(marker);
+
+  const markerRect = marker.getBoundingClientRect();
+
+  suggestionsEl.style.position = "fixed";
+  suggestionsEl.style.left = markerRect.left + "px";
+  suggestionsEl.style.top = (markerRect.bottom + 4) + "px";
+}
+
+// --- サジェスト描画（部分一致／どのエディタでもOK） ---
+function renderSuggestions(currentToken, candidates, kind, editorEl) {
+  suggestionsEl.innerHTML = "";
 
   if (!currentToken) {
     hideSuggestions();
@@ -587,6 +618,8 @@ function updateSuggestionsForEditor(editorEl, kind) {
   }
 
   const lower = currentToken.toLowerCase();
+
+  // 部分一致（includes）＋ 前方一致（startsWith）を優先してソート
   let filtered = candidates.filter(c => c.toLowerCase().includes(lower));
 
   if (filtered.length === 0) {
@@ -604,7 +637,6 @@ function updateSuggestionsForEditor(editorEl, kind) {
     return la.localeCompare(lb);
   });
 
-  suggestionsEl.innerHTML = "";
   filtered.slice(0, 10).forEach(c => {
     const btn = document.createElement("button");
     btn.className = "suggestion-btn";
@@ -613,22 +645,32 @@ function updateSuggestionsForEditor(editorEl, kind) {
     suggestionsEl.appendChild(btn);
   });
 
-  // どのエディタに対するサジェストかを記録
   currentSuggestionTarget = { kind, editor: editorEl };
 
-  // ★ エディタの位置に合わせて表示（スクロールしてもズレないように absolute＋scrollXY）
-  const rect = editorEl.getBoundingClientRect();
-  const top = window.scrollY + rect.bottom + 4;
-  const left = window.scrollX + rect.left;
-
-  suggestionsEl.style.position = "absolute";
-  suggestionsEl.style.left = left + "px";
-  suggestionsEl.style.top = top + "px";
-  suggestionsEl.style.zIndex = 9999;  // 手前に出す
   suggestionsEl.style.display = "block";
+  updateSuggestionPosition(editorEl);
 }
 
-  
+// --- 共通サジェスト更新 ---
+// kind: "pos" | "neg" | "presetPos" | "presetNeg"
+function updateSuggestionsForEditor(kind, editorEl) {
+  if (!editorEl) {
+    hideSuggestions();
+    return;
+  }
+
+  // IME 変換中はサジェストを更新しない
+  if (composingKind === kind) {
+    return;
+  }
+
+  const text = editorEl.value || "";
+  const cursorPos = editorEl.selectionStart || 0;
+  const currentToken = getCurrentToken(text, cursorPos);
+
+  const candidates = getAllCandidates();
+  renderSuggestions(currentToken, candidates, kind, editorEl);
+}
 
 // --- サジェスト確定：どのエディタでもOK ---
 function applySuggestion(currentToken, suggestion) {
@@ -637,22 +679,22 @@ function applySuggestion(currentToken, suggestion) {
   const { kind, editor } = currentSuggestionTarget;
   if (!editor) return;
 
-  // ★ Undo 対応
+  // Undo に積む
   saveUndoBeforeChange(kind);
 
-  const originalText = editor.value;
+  const originalText = editor.value || "";
   const pos = editor.selectionStart || 0;
   const left = originalText.slice(0, pos);
   const right = originalText.slice(pos);
 
   const tokenWithComma = suggestion + ", ";
-  // 「今打っているフレーズ」の末尾を置き換える
-  const replacedLeft = left.replace(/([^,、\n]+)$/, tokenWithComma);
-  const newText = replacedLeft + right;
 
-  // カーソル位置
+  // 左側の「最後の単語」部分を suggestion に置き換え
+  const replacedLeft = left.replace(/([^,\s、]+)$/, tokenWithComma);
+  const newText = replacedLeft + right;
   const newCursorPos = replacedLeft.length;
 
+  // 実データ反映
   if (kind === "pos" || kind === "neg") {
     const tab = getCurrentTab();
     if (!tab) return;
@@ -674,14 +716,30 @@ function applySuggestion(currentToken, suggestion) {
     presetEditorNegEl.value = newText;
   }
 
+  editor.value = newText;
+  editor.setSelectionRange(newCursorPos, newCursorPos);
   saveAppData();
 
-  editor.focus();
-  editor.setSelectionRange(newCursorPos, newCursorPos);
-
-  // いったん閉じる（必要なら再度キー入力で出る）
+  // サジェスト閉じる
   hideSuggestions();
+
+  // スマホで「入力中状態」が続くのを避けるため、いったんフォーカスを外す
+  editor.blur();
 }
+
+// --- IME（日本語変換）中はサジェスト更新を止める ---
+function attachCompositionHandlers(kind, editorEl) {
+  editorEl.addEventListener("compositionstart", () => {
+    composingKind = kind;
+  });
+  editorEl.addEventListener("compositionend", () => {
+    composingKind = null;
+    updateSuggestionsForEditor(kind, editorEl);
+  });
+}
+
+// ======== サジェスト新実装ここまで ========
+
 
 // --- Undo ボタンの動作 ---
 posUndoBtn.onclick = () => {
@@ -729,13 +787,13 @@ editorPosEl.addEventListener("input", () => {
   tab.textPos = editorPosEl.value;
   saveAppData();
   syncWordsFromPosText(editorPosEl.value);
-  updateSuggestionsForEditor(editorPosEl, "pos");
+  updateSuggestionsForEditor("pos", editorPosEl);
 });
 editorPosEl.addEventListener("keyup", () => {
-  updateSuggestionsForEditor(editorPosEl, "pos");
+  updateSuggestionsForEditor("pos", editorPosEl);
 });
 editorPosEl.addEventListener("click", () => {
-  updateSuggestionsForEditor(editorPosEl, "pos");
+  updateSuggestionsForEditor("pos", editorPosEl);
 });
 
 editorNegEl.addEventListener("input", () => {
@@ -744,38 +802,38 @@ editorNegEl.addEventListener("input", () => {
   tab.textNeg = editorNegEl.value;
   saveAppData();
   syncWordsFromNegText(editorNegEl.value);
-  updateSuggestionsForEditor(editorNegEl, "neg");
+  updateSuggestionsForEditor("neg", editorNegEl);
 });
 editorNegEl.addEventListener("keyup", () => {
-  updateSuggestionsForEditor(editorNegEl, "neg");
+  updateSuggestionsForEditor("neg", editorNegEl);
 });
 editorNegEl.addEventListener("click", () => {
-  updateSuggestionsForEditor(editorNegEl, "neg");
+  updateSuggestionsForEditor("neg", editorNegEl);
 });
 
 // プリセットタブのテキストエリア入力
 presetEditorPosEl.addEventListener("input", () => {
   appData.presetDraftPosText = presetEditorPosEl.value;
   saveAppData();
-  updateSuggestionsForEditor(presetEditorPosEl, "presetPos");
+  updateSuggestionsForEditor("presetPos", presetEditorPosEl);
 });
 presetEditorPosEl.addEventListener("keyup", () => {
-  updateSuggestionsForEditor(presetEditorPosEl, "presetPos");
+  updateSuggestionsForEditor("presetPos", presetEditorPosEl);
 });
 presetEditorPosEl.addEventListener("click", () => {
-  updateSuggestionsForEditor(presetEditorPosEl, "presetPos");
+  updateSuggestionsForEditor("presetPos", presetEditorPosEl);
 });
 
 presetEditorNegEl.addEventListener("input", () => {
   appData.presetDraftNegText = presetEditorNegEl.value;
   saveAppData();
-  updateSuggestionsForEditor(presetEditorNegEl, "presetNeg");
+  updateSuggestionsForEditor("presetNeg", presetEditorNegEl);
 });
 presetEditorNegEl.addEventListener("keyup", () => {
-  updateSuggestionsForEditor(presetEditorNegEl, "presetNeg");
+  updateSuggestionsForEditor("presetNeg", presetEditorNegEl);
 });
 presetEditorNegEl.addEventListener("click", () => {
-  updateSuggestionsForEditor(presetEditorNegEl, "presetNeg");
+  updateSuggestionsForEditor("presetNeg", presetEditorNegEl);
 });
 
 // ★ エディタやサジェスト以外をクリックしたらサジェストを閉じる
@@ -1497,7 +1555,7 @@ function renderWordsEditList() {
     weightInput.placeholder = "w";
 
     function changeWeightForThis(delta) {
-      // ★ まず Undo を積む（この時点ではまだ変更前のテキスト）
+      // ★ まず Undo を積む
       saveUndoBeforeChange(kind);
 
       const currentText = getTextByKind(kind);
@@ -2185,7 +2243,6 @@ presetMultiAddBtn.onclick = () => {
 };
 
 // ★ プリセットを「現在のタブ」に適用（ポジ／ネガ両方）
-//    適用方法は presetApplyMode ("append" | "overwrite") で制御
 function applyPresetsToCurrentTab(presets) {
   const tab = getCurrentTab();
   if (!tab) return;
@@ -2212,11 +2269,9 @@ function applyPresetsToCurrentTab(presets) {
   let newNeg = baseNeg;
 
   if (presetApplyMode === "overwrite") {
-    // 上書き：値がある側だけ置き換え（空の方はそのまま）
     if (posParts.length > 0) newPos = combinedPos;
     if (negParts.length > 0) newNeg = combinedNeg;
   } else {
-    // 追加：末尾に改行して足す
     if (posParts.length > 0) {
       newPos = basePos ? (basePos + "\n" + combinedPos) : combinedPos;
     }
@@ -2269,6 +2324,12 @@ presetCreateBtn.onclick = () => {
   alert(`カテゴリ「${group.name}」にプリセットを追加しました。`);
   renderPresetCategoryOptions();
 };
+
+// --- IME ハンドラを各エディタに付与 ---
+attachCompositionHandlers("pos", editorPosEl);
+attachCompositionHandlers("neg", editorNegEl);
+attachCompositionHandlers("presetPos", presetEditorPosEl);
+attachCompositionHandlers("presetNeg", presetEditorNegEl);
 
 // 初期表示
 renderTabs();
