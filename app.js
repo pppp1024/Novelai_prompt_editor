@@ -131,16 +131,6 @@ const wordsPosEl = document.getElementById("wordsPos");
 const wordsNegEl = document.getElementById("wordsNeg");
 const suggestionsEl = document.getElementById("suggestions");
 
-// --- キャレット位置計算用のダミー要素 ---
-const caretHelper = document.createElement("div");
-caretHelper.style.position = "fixed";
-caretHelper.style.visibility = "hidden";
-caretHelper.style.whiteSpace = "pre-wrap";
-caretHelper.style.wordWrap = "break-word";
-caretHelper.style.pointerEvents = "none";
-caretHelper.style.zIndex = 9999;
-document.body.appendChild(caretHelper);
-
 const presetCategorySelectEl = document.getElementById("presetCategorySelect");
 const presetCreateBtn = document.getElementById("presetCreateBtn");
 
@@ -566,27 +556,36 @@ function getAllCandidates() {
     .filter(x => x && x.trim().length > 0);
 }
 
-function positionSuggestionPopup(editorEl) {
-  if (!editorEl) return;
-
-  // 今フォーカスしている textarea の位置を取得
-  const rect = editorEl.getBoundingClientRect();
-
-  // テキストエリアの「すぐ下」に固定表示する
-  const margin = 4; // テキストエリアとの隙間
-
-  suggestionsEl.style.position = "fixed";
-  suggestionsEl.style.left = rect.left + "px";
-  suggestionsEl.style.top = (rect.bottom + margin) + "px";
-  suggestionsEl.style.zIndex = 10000;
-}
-
 // --- サジェストを非表示 ---
 function hideSuggestions() {
   suggestionsEl.innerHTML = "";
   suggestionsEl.style.display = "none";
+  suggestionsEl.style.position = "";  // 位置指定をリセット
   currentSuggestionTarget = null;
 }
+
+function positionSuggestionPopup(editorEl) {
+  if (!editorEl) return;
+
+  // textarea の画面上の位置
+  const rect = editorEl.getBoundingClientRect();
+
+  // ページ全体のスクロール量
+  const scrollY = window.scrollY || document.documentElement.scrollTop;
+  const scrollX = window.scrollX || document.documentElement.scrollLeft;
+
+  const margin = 4; // テキストエリアとの隙間
+
+  // ページ（document）基準で textarea のすぐ下に表示
+  suggestionsEl.style.position = "absolute";
+  suggestionsEl.style.left = (rect.left + scrollX) + "px";
+  suggestionsEl.style.top = (rect.bottom + scrollY + margin) + "px";
+  suggestionsEl.style.zIndex = 10000;
+
+  // 横幅も textarea に揃える（好みで）
+  suggestionsEl.style.width = rect.width + "px";
+}
+
 
 // --- 実際にサジェストを作る処理（どのエディタでも共通） ---
 function showSuggestionsFor(kind, editorEl) {
