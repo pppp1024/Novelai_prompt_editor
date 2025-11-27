@@ -133,8 +133,11 @@ const suggestionsEl = document.getElementById("suggestions");
 
 // ★ どのエディタに対するサジェストかを保持
 // kind: "pos" | "neg" | "presetPos" | "presetNeg"
-// editor: 対象の textarea 要素
 let currentSuggestionTarget = null;
+
+// --- サジェスト共通状態（今は未使用だが残しておく） ---
+let currentSuggestionEditor = null;
+let currentSuggestionKind = null;
 
 // --- キャレット位置計算用のダミー要素 ---
 const caretHelper = document.createElement("div");
@@ -526,13 +529,11 @@ function deleteSelectedWords() {
 function syncWordsFromPosText(text) {
   const tokens = getTokensFromText(text);
   renderWords(tokens, "pos");
-  // ★ サジェスト更新は editor のイベント側で行うように変更
 }
 
 function syncWordsFromNegText(text) {
   const tokens = getTokensFromText(text);
   renderWords(tokens, "neg");
-  // サジェスト更新は editorNegEl 側のイベントで行う
 }
 
 function renderWords(tokens, kind) {
@@ -550,23 +551,67 @@ function renderWords(tokens, kind) {
   });
 }
 
+/* =========================================================
+   ここからサジェスト（候補表示）処理
+   ========================================================= */
+
 // --- カーソル直前の「最後のフレーズ」を取得（カンマ・改行区切り） ---
 function getCurrentToken(text, cursorPos) {
   const left = text.slice(0, cursorPos);
-  // カンマ / 日本語カンマ / 改行で区切って最後の要素をとる
   const parts = left.split(/[,、\n]/);
   const last = parts[parts.length - 1] || "";
   return last.trim();
 }
 
-// --- サジェストを全部消す ---
+// 全候補（candidateGroups 全部）のフラットなリスト
+function getAllCandidates() {
+  return appData.candidateGroups
+    .flatMap(g => g.items)
+    .filter(x => x && x.trim().length > 0);
+}
+
+// --- サジェスト非表示 ---
 function hideSuggestions() {
   suggestionsEl.innerHTML = "";
   suggestionsEl.style.display = "none";
   currentSuggestionTarget = null;
 }
 
-// --- サジェスト描画（部分一致／前方一致優先） ---
+// --- キャレット位置にサジェストボックスを移動 ---
+function updateSuggestionPosition(editorEl) {
+  if (!editorEl) return;
+
+  const rect = editorEl.getBoundingClientRect();
+  const style = window.getComputedStyle(editorEl);
+
+  // textareaのスタイルをコピー
+  caretHelper.style.font = style.font;
+  caretHelper.style.padding = style.padding;
+  caretHelper.style.border = style.border;
+  caretHelper.style.boxSizing = style.boxSizing;
+  caretHelper.style.width = style.width;
+  caretHelper.style.textAlign = style.textAlign;
+
+  caretHelper.style.left = rect.left + "px";
+  caretHelper.style.top = rect.top + "px";
+
+  const text = editorEl.value || "";
+  const cursorPos = editorEl.selectionStart || 0;
+  const before = text.slice(0, cursorPos);
+
+  caretHelper.textContent = before;
+  const marker = document.createElement("span");
+  marker.textContent = "\u200b";
+  caretHelper.appendChild(marker);
+
+  const markerRect = marker.getBoundingClientRect();
+
+  suggestionsEl.style.position = "fixed";
+  suggestionsEl.style.left = markerRect.left + "px";
+  suggestionsEl.style.top = (markerRect.bottom + 4) + "px";
+}
+
+// --- サジェスト描画（部分一致／どのエディタでもOK） ---
 function renderSuggestions(currentToken, candidates) {
   suggestionsEl.innerHTML = "";
 
@@ -576,6 +621,8 @@ function renderSuggestions(currentToken, candidates) {
   }
 
   const lower = currentToken.toLowerCase();
+
+  // 部分一致（includes）＋ 前方一致（startsWith）を優先してソート
   let filtered = candidates.filter(c => c.toLowerCase().includes(lower));
 
   if (filtered.length === 0) {
@@ -583,7 +630,6 @@ function renderSuggestions(currentToken, candidates) {
     return;
   }
 
-  // 前方一致を優先してソート
   filtered.sort((a, b) => {
     const la = a.toLowerCase();
     const lb = b.toLowerCase();
@@ -603,9 +649,13 @@ function renderSuggestions(currentToken, candidates) {
   });
 
   suggestionsEl.style.display = "block";
+
+  if (currentSuggestionTarget && currentSuggestionTarget.editor) {
+    updateSuggestionPosition(currentSuggestionTarget.editor);
+  }
 }
 
-// --- 共通サジェスト更新（editorEl, kind の順） ---
+// --- 共通サジェスト更新（editorEl, kind の順で呼ぶ） ---
 function updateSuggestionsForEditor(editorEl, kind) {
   if (!editorEl) {
     hideSuggestions();
@@ -615,21 +665,20 @@ function updateSuggestionsForEditor(editorEl, kind) {
   const cursorPos = editorEl.selectionStart || 0;
   const currentToken = getCurrentToken(text, cursorPos);
 
-  // ここで「どのエディタに対するサジェストか」を記録
+  // どのエディタに対するサジェストか記録
   currentSuggestionTarget = { kind, editor: editorEl };
 
   const candidates = getAllCandidates();
   renderSuggestions(currentToken, candidates);
 }
 
-// --- サジェスト確定 ---
+// --- サジェスト確定：どのエディタでもOK ---
 function applySuggestion(currentToken, suggestion) {
   if (!currentSuggestionTarget) return;
-
   const { kind, editor } = currentSuggestionTarget;
   if (!editor) return;
 
-  // ★ Undo 対応（挿入前の状態を保存）
+  // ★ 挿入前に Undo を積む
   saveUndoBeforeChange(kind);
 
   const originalText = editor.value || "";
@@ -668,62 +717,13 @@ function applySuggestion(currentToken, suggestion) {
   editor.focus();
   editor.setSelectionRange(newCursorPos, newCursorPos);
 
-  // 挿入後も、同じエディタに対してサジェスト更新
+  // 挿入後も、そのエディタに対してサジェスト更新
   updateSuggestionsForEditor(editor, kind);
 }
 
-// --- サジェスト確定：どのエディタでもOK ---
-function applySuggestion(currentToken, suggestion) {
-  if (!currentSuggestionTarget) return;
-
-  const { kind, editor } = currentSuggestionTarget;
-  if (!editor) return;
-
-  // ★ Undo 対応
-  saveUndoBeforeChange(kind);
-
-  const originalText = editor.value;
-  const pos = editor.selectionStart || 0;
-  const left = originalText.slice(0, pos);
-  const right = originalText.slice(pos);
-
-  const tokenWithComma = suggestion + ", ";
-  const replacedLeft = left.replace(/([^,\s]+)$/, tokenWithComma);
-  const newText = replacedLeft + right;
-
-  // カーソル位置
-  const newCursorPos = replacedLeft.length;
-
-  if (kind === "pos" || kind === "neg") {
-    const tab = getCurrentTab();
-    if (!tab) return;
-
-    if (kind === "pos") {
-      tab.textPos = newText;
-      editorPosEl.value = newText;
-      syncWordsFromPosText(newText);
-    } else {
-      tab.textNeg = newText;
-      editorNegEl.value = newText;
-      syncWordsFromNegText(newText);
-    }
-  } else if (kind === "presetPos") {
-    appData.presetDraftPosText = newText;
-    presetEditorPosEl.value = newText;
-  } else if (kind === "presetNeg") {
-    appData.presetDraftNegText = newText;
-    presetEditorNegEl.value = newText;
-  }
-
-  saveAppData();
-
-  editor.focus();
-  editor.setSelectionRange(newCursorPos, newCursorPos);
-
-  // サジェスト更新 or 閉じる
-  updateSuggestionsForEditor(editor, kind);
-}
-
+/* =========================================================
+   ここまでサジェスト処理
+   ========================================================= */
 
 // --- Undo ボタンの動作 ---
 posUndoBtn.onclick = () => {
@@ -1765,7 +1765,7 @@ function renderWordsEditList() {
       dragInfoWordEdit = {
         startX: e.clientX,
         startY: e.clientY,
-        index: idx,     // ドラッグ開始時の index を記録
+        index: idx,
         chipEl: chip,
         dragging: false
       };
