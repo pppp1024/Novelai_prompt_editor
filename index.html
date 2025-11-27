@@ -91,6 +91,7 @@
       right: 6px;
       display: flex;
       gap: 4px;
+      z-index: 2;
     }
     .editor-actions button {
       border: none;
@@ -161,6 +162,8 @@
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
+      position: fixed;
+      z-index: 10000;
     }
     .suggestion-btn {
       padding: 3px 6px;
@@ -399,7 +402,6 @@
     </div>
 
     <div class="chips" id="wordsPos" style="display:none;"></div>
-    <div class="suggestions" id="suggestions"></div>
 
     <div class="section-label">ネガティブプロンプト</div>
     <div class="editor-wrapper">
@@ -458,6 +460,9 @@
       <button id="openPresetCategoryEditBtn">カテゴリ編集</button>
     </div>
   </div>
+
+  <!-- ★ ポジ／ネガ／プリセット共通で使うサジェストボックス -->
+  <div class="suggestions" id="suggestions" style="display:none;"></div>
 
   <!-- 候補ページ（選択＋編集） -->
   <div class="modal-backdrop" id="candidatePage">
@@ -635,7 +640,5 @@
   <!-- メインロジック app.jsに移動-->
   <!-- メインロジック本体（元の巨大な script の中身をここに移す） -->
   <script src="app.js"></script>
-
-  
 </body>
 </html>
