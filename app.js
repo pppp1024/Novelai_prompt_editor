@@ -566,39 +566,18 @@ function getAllCandidates() {
     .filter(x => x && x.trim().length > 0);
 }
 
-// --- キャレット位置のすぐ下にサジェストボックスを配置 ---
 function positionSuggestionPopup(editorEl) {
   if (!editorEl) return;
 
+  // 今フォーカスしている textarea の位置を取得
   const rect = editorEl.getBoundingClientRect();
-  const style = window.getComputedStyle(editorEl);
 
-  caretHelper.style.position = "fixed";
-  caretHelper.style.visibility = "hidden";
-  caretHelper.style.whiteSpace = "pre-wrap";
-  caretHelper.style.wordWrap = "break-word";
-  caretHelper.style.boxSizing = style.boxSizing;
-  caretHelper.style.font = style.font;
-  caretHelper.style.padding = style.padding;
-  caretHelper.style.border = style.border;
-  caretHelper.style.width = rect.width + "px";
-  caretHelper.style.left = rect.left + "px";
-  caretHelper.style.top = rect.top + "px";
-
-  const text = editorEl.value || "";
-  const cursorPos = editorEl.selectionStart || 0;
-  const before = text.slice(0, cursorPos);
-
-  caretHelper.textContent = before;
-  const marker = document.createElement("span");
-  marker.textContent = "\u200b"; // ゼロ幅スペース
-  caretHelper.appendChild(marker);
-
-  const markerRect = marker.getBoundingClientRect();
+  // テキストエリアの「すぐ下」に固定表示する
+  const margin = 4; // テキストエリアとの隙間
 
   suggestionsEl.style.position = "fixed";
-  suggestionsEl.style.left = markerRect.left + "px";
-  suggestionsEl.style.top = (markerRect.bottom + 4) + "px";
+  suggestionsEl.style.left = rect.left + "px";
+  suggestionsEl.style.top = (rect.bottom + margin) + "px";
   suggestionsEl.style.zIndex = 10000;
 }
 
