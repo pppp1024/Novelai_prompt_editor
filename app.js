@@ -681,51 +681,57 @@ function renderSuggestions(currentToken, candidates) {
 }
 
 // --- サジェスト確定：どのエディタでもOK ---
-function applySuggestionForEditor(kind, editorEl, suggestion) {
-  if (!editorEl) return;
+function applySuggestion(currentToken, suggestion) {
+  if (!currentSuggestionTarget) return;
 
-  // Undo積む
+  const { kind, editor } = currentSuggestionTarget;
+  if (!editor) return;
+
+  // ★ Undo 対応
   saveUndoBeforeChange(kind);
 
-  const text = editorEl.value || "";
-  const pos = editorEl.selectionStart || 0;
-  const left = text.slice(0, pos);
-  const right = text.slice(pos);
+  const originalText = editor.value;
+  const pos = editor.selectionStart || 0;
+  const left = originalText.slice(0, pos);
+  const right = originalText.slice(pos);
 
-  // 「最後のフレーズ」（カンマ/改行/日本語カンマ以降）を suggestion + ", " に置き換え
   const tokenWithComma = suggestion + ", ";
-  const replacedLeft = left.replace(/[^,、\n]*$/, tokenWithComma);
+  const replacedLeft = left.replace(/([^,\s]+)$/, tokenWithComma);
   const newText = replacedLeft + right;
 
-  editorEl.value = newText;
+  // カーソル位置
+  const newCursorPos = replacedLeft.length;
 
-  // appDataに反映
-  if (kind === "pos") {
+  if (kind === "pos" || kind === "neg") {
     const tab = getCurrentTab();
-    if (tab) {
+    if (!tab) return;
+
+    if (kind === "pos") {
       tab.textPos = newText;
+      editorPosEl.value = newText;
       syncWordsFromPosText(newText);
-    }
-  } else if (kind === "neg") {
-    const tab = getCurrentTab();
-    if (tab) {
+    } else {
       tab.textNeg = newText;
+      editorNegEl.value = newText;
       syncWordsFromNegText(newText);
     }
   } else if (kind === "presetPos") {
     appData.presetDraftPosText = newText;
+    presetEditorPosEl.value = newText;
   } else if (kind === "presetNeg") {
     appData.presetDraftNegText = newText;
+    presetEditorNegEl.value = newText;
   }
 
   saveAppData();
 
-  const newCursorPos = replacedLeft.length;
-  editorEl.focus();
-  editorEl.setSelectionRange(newCursorPos, newCursorPos);
+  editor.focus();
+  editor.setSelectionRange(newCursorPos, newCursorPos);
 
-  updateSuggestionsForEditor(kind, editorEl);
+  // サジェスト更新 or 閉じる
+  updateSuggestionsForEditor(editor, kind);
 }
+
 
 // --- Undo ボタンの動作 ---
 posUndoBtn.onclick = () => {
