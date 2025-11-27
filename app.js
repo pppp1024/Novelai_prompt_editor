@@ -133,21 +133,8 @@ const suggestionsEl = document.getElementById("suggestions");
 
 // ★ どのエディタに対するサジェストかを保持
 // kind: "pos" | "neg" | "presetPos" | "presetNeg"
+// editor: 対象の textarea 要素
 let currentSuggestionTarget = null;
-
-// --- サジェスト共通状態（今は未使用だが残しておく） ---
-let currentSuggestionEditor = null;
-let currentSuggestionKind = null;
-
-// --- キャレット位置計算用のダミー要素 ---
-const caretHelper = document.createElement("div");
-caretHelper.style.position = "fixed";
-caretHelper.style.visibility = "hidden";
-caretHelper.style.whiteSpace = "pre-wrap";
-caretHelper.style.wordWrap = "break-word";
-caretHelper.style.pointerEvents = "none";
-caretHelper.style.zIndex = 9999;
-document.body.appendChild(caretHelper);
 
 const presetCategorySelectEl = document.getElementById("presetCategorySelect");
 const presetCreateBtn = document.getElementById("presetCreateBtn");
@@ -551,19 +538,16 @@ function renderWords(tokens, kind) {
   });
 }
 
-/* =========================================================
-   ここからサジェスト（候補表示）処理
-   ========================================================= */
-
 // --- カーソル直前の「最後のフレーズ」を取得（カンマ・改行区切り） ---
 function getCurrentToken(text, cursorPos) {
   const left = text.slice(0, cursorPos);
+  // カンマ / 日本語カンマ / 改行で区切って最後の要素をとる
   const parts = left.split(/[,、\n]/);
   const last = parts[parts.length - 1] || "";
   return last.trim();
 }
 
-// 全候補（candidateGroups 全部）のフラットなリスト
+// 全候補一覧
 function getAllCandidates() {
   return appData.candidateGroups
     .flatMap(g => g.items)
@@ -577,43 +561,17 @@ function hideSuggestions() {
   currentSuggestionTarget = null;
 }
 
-// --- キャレット位置にサジェストボックスを移動 ---
-function updateSuggestionPosition(editorEl) {
-  if (!editorEl) return;
-
-  const rect = editorEl.getBoundingClientRect();
-  const style = window.getComputedStyle(editorEl);
-
-  // textareaのスタイルをコピー
-  caretHelper.style.font = style.font;
-  caretHelper.style.padding = style.padding;
-  caretHelper.style.border = style.border;
-  caretHelper.style.boxSizing = style.boxSizing;
-  caretHelper.style.width = style.width;
-  caretHelper.style.textAlign = style.textAlign;
-
-  caretHelper.style.left = rect.left + "px";
-  caretHelper.style.top = rect.top + "px";
-
+// --- 共通サジェスト更新（どのエディタでもOK） ---
+function updateSuggestionsForEditor(editorEl, kind) {
+  if (!editorEl) {
+    hideSuggestions();
+    return;
+  }
   const text = editorEl.value || "";
   const cursorPos = editorEl.selectionStart || 0;
-  const before = text.slice(0, cursorPos);
+  const currentToken = getCurrentToken(text, cursorPos);
 
-  caretHelper.textContent = before;
-  const marker = document.createElement("span");
-  marker.textContent = "\u200b";
-  caretHelper.appendChild(marker);
-
-  const markerRect = marker.getBoundingClientRect();
-
-  suggestionsEl.style.position = "fixed";
-  suggestionsEl.style.left = markerRect.left + "px";
-  suggestionsEl.style.top = (markerRect.bottom + 4) + "px";
-}
-
-// --- サジェスト描画（部分一致／どのエディタでもOK） ---
-function renderSuggestions(currentToken, candidates) {
-  suggestionsEl.innerHTML = "";
+  const candidates = getAllCandidates();
 
   if (!currentToken) {
     hideSuggestions();
@@ -621,8 +579,6 @@ function renderSuggestions(currentToken, candidates) {
   }
 
   const lower = currentToken.toLowerCase();
-
-  // 部分一致（includes）＋ 前方一致（startsWith）を優先してソート
   let filtered = candidates.filter(c => c.toLowerCase().includes(lower));
 
   if (filtered.length === 0) {
@@ -640,6 +596,7 @@ function renderSuggestions(currentToken, candidates) {
     return la.localeCompare(lb);
   });
 
+  suggestionsEl.innerHTML = "";
   filtered.slice(0, 10).forEach(c => {
     const btn = document.createElement("button");
     btn.className = "suggestion-btn";
@@ -648,47 +605,38 @@ function renderSuggestions(currentToken, candidates) {
     suggestionsEl.appendChild(btn);
   });
 
-  suggestionsEl.style.display = "block";
-
-  if (currentSuggestionTarget && currentSuggestionTarget.editor) {
-    updateSuggestionPosition(currentSuggestionTarget.editor);
-  }
-}
-
-// --- 共通サジェスト更新（editorEl, kind の順で呼ぶ） ---
-function updateSuggestionsForEditor(editorEl, kind) {
-  if (!editorEl) {
-    hideSuggestions();
-    return;
-  }
-  const text = editorEl.value || "";
-  const cursorPos = editorEl.selectionStart || 0;
-  const currentToken = getCurrentToken(text, cursorPos);
-
-  // どのエディタに対するサジェストか記録
+  // どのエディタに対するサジェストかを記録
   currentSuggestionTarget = { kind, editor: editorEl };
 
-  const candidates = getAllCandidates();
-  renderSuggestions(currentToken, candidates);
+  // エディタの直下に表示
+  const rect = editorEl.getBoundingClientRect();
+  suggestionsEl.style.position = "fixed";
+  suggestionsEl.style.left = rect.left + "px";
+  suggestionsEl.style.top = (rect.bottom + 4) + "px";
+  suggestionsEl.style.display = "block";
 }
 
 // --- サジェスト確定：どのエディタでもOK ---
 function applySuggestion(currentToken, suggestion) {
   if (!currentSuggestionTarget) return;
+
   const { kind, editor } = currentSuggestionTarget;
   if (!editor) return;
 
-  // ★ 挿入前に Undo を積む
+  // ★ Undo 対応
   saveUndoBeforeChange(kind);
 
-  const originalText = editor.value || "";
+  const originalText = editor.value;
   const pos = editor.selectionStart || 0;
   const left = originalText.slice(0, pos);
   const right = originalText.slice(pos);
 
   const tokenWithComma = suggestion + ", ";
-  const replacedLeft = left.replace(/([^,\s]+)$/, tokenWithComma);
+  // 「今打っているフレーズ」の末尾を置き換える
+  const replacedLeft = left.replace(/([^,、\n]+)$/, tokenWithComma);
   const newText = replacedLeft + right;
+
+  // カーソル位置
   const newCursorPos = replacedLeft.length;
 
   if (kind === "pos" || kind === "neg") {
@@ -717,13 +665,9 @@ function applySuggestion(currentToken, suggestion) {
   editor.focus();
   editor.setSelectionRange(newCursorPos, newCursorPos);
 
-  // 挿入後も、そのエディタに対してサジェスト更新
-  updateSuggestionsForEditor(editor, kind);
+  // いったん閉じる（必要なら再度キー入力で出る）
+  hideSuggestions();
 }
-
-/* =========================================================
-   ここまでサジェスト処理
-   ========================================================= */
 
 // --- Undo ボタンの動作 ---
 posUndoBtn.onclick = () => {
@@ -1765,7 +1709,7 @@ function renderWordsEditList() {
       dragInfoWordEdit = {
         startX: e.clientX,
         startY: e.clientY,
-        index: idx,
+        index: idx,     // ドラッグ開始時の index を記録
         chipEl: chip,
         dragging: false
       };
