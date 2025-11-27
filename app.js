@@ -779,16 +779,13 @@ editorPosEl.addEventListener("input", () => {
   tab.textPos = editorPosEl.value;
   saveAppData();
   syncWordsFromPosText(editorPosEl.value);
-  updateSuggestionsForEditor("pos", editorPosEl);
+  updateSuggestionsForEditor(editorPosEl, "pos");
 });
 editorPosEl.addEventListener("keyup", () => {
-  updateSuggestionsForEditor("pos", editorPosEl);
+  updateSuggestionsForEditor(editorPosEl, "pos");
 });
 editorPosEl.addEventListener("click", () => {
-  updateSuggestionsForEditor("pos", editorPosEl);
-});
-editorPosEl.addEventListener("blur", () => {
-  hideSuggestions();
+  updateSuggestionsForEditor(editorPosEl, "pos");
 });
 
 editorNegEl.addEventListener("input", () => {
@@ -797,46 +794,57 @@ editorNegEl.addEventListener("input", () => {
   tab.textNeg = editorNegEl.value;
   saveAppData();
   syncWordsFromNegText(editorNegEl.value);
-  updateSuggestionsForEditor("neg", editorNegEl);
+  updateSuggestionsForEditor(editorNegEl, "neg");
 });
 editorNegEl.addEventListener("keyup", () => {
-  updateSuggestionsForEditor("neg", editorNegEl);
+  updateSuggestionsForEditor(editorNegEl, "neg");
 });
 editorNegEl.addEventListener("click", () => {
-  updateSuggestionsForEditor("neg", editorNegEl);
-});
-editorNegEl.addEventListener("blur", () => {
-  hideSuggestions();
+  updateSuggestionsForEditor(editorNegEl, "neg");
 });
 
-// プリセットタブのテキストエリア
+// プリセットタブのテキストエリア入力
 presetEditorPosEl.addEventListener("input", () => {
   appData.presetDraftPosText = presetEditorPosEl.value;
   saveAppData();
-  updateSuggestionsForEditor("presetPos", presetEditorPosEl);
+  updateSuggestionsForEditor(presetEditorPosEl, "presetPos");
 });
 presetEditorPosEl.addEventListener("keyup", () => {
-  updateSuggestionsForEditor("presetPos", presetEditorPosEl);
+  updateSuggestionsForEditor(presetEditorPosEl, "presetPos");
 });
 presetEditorPosEl.addEventListener("click", () => {
-  updateSuggestionsForEditor("presetPos", presetEditorPosEl);
-});
-presetEditorPosEl.addEventListener("blur", () => {
-  hideSuggestions();
+  updateSuggestionsForEditor(presetEditorPosEl, "presetPos");
 });
 
 presetEditorNegEl.addEventListener("input", () => {
   appData.presetDraftNegText = presetEditorNegEl.value;
   saveAppData();
-  updateSuggestionsForEditor("presetNeg", presetEditorNegEl);
+  updateSuggestionsForEditor(presetEditorNegEl, "presetNeg");
 });
 presetEditorNegEl.addEventListener("keyup", () => {
-  updateSuggestionsForEditor("presetNeg", presetEditorNegEl);
+  updateSuggestionsForEditor(presetEditorNegEl, "presetNeg");
 });
 presetEditorNegEl.addEventListener("click", () => {
-  updateSuggestionsForEditor("presetNeg", presetEditorNegEl);
+  updateSuggestionsForEditor(presetEditorNegEl, "presetNeg");
 });
-presetEditorNegEl.addEventListener("blur", () => {
+
+// ★ エディタやサジェスト以外をクリックしたらサジェストを閉じる
+document.addEventListener("click", (e) => {
+  const target = e.target;
+
+  // サジェスト内クリックなら閉じない
+  if (suggestionsEl.contains(target)) return;
+
+  // 各エディタ自体をクリックした場合も閉じない
+  if (
+    target === editorPosEl ||
+    target === editorNegEl ||
+    target === presetEditorPosEl ||
+    target === presetEditorNegEl
+  ) {
+    return;
+  }
+
   hideSuggestions();
 });
 
