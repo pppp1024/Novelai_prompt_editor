@@ -659,6 +659,11 @@ function updateSuggestionsForEditor(kind, editorEl) {
     return;
   }
 
+  // IME 変換中はサジェストを更新しない
+  if (composingKind === kind) {
+    return;
+  }
+
   const text = editorEl.value || "";
   const cursorPos = editorEl.selectionStart || 0;
   const currentToken = getCurrentToken(text, cursorPos);
