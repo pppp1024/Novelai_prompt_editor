@@ -136,10 +136,6 @@ const suggestionsEl = document.getElementById("suggestions");
 // editor: 対象の textarea 要素
 let currentSuggestionTarget = null;
 
-// --- サジェスト共通状態 ---
-let currentSuggestionEditor = null; // どのテキストエリアか
-let currentSuggestionKind = null;   // "pos" | "neg" | "presetPos" | "presetNeg"
-
 // --- キャレット位置計算用のダミー要素 ---
 const caretHelper = document.createElement("div");
 caretHelper.style.position = "fixed";
