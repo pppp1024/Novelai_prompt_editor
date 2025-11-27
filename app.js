@@ -131,6 +131,11 @@ const wordsPosEl = document.getElementById("wordsPos");
 const wordsNegEl = document.getElementById("wordsNeg");
 const suggestionsEl = document.getElementById("suggestions");
 
+// ★ どのエディタに対するサジェストかを保持
+// kind: "pos" | "neg" | "presetPos" | "presetNeg"
+// editor: 対象の textarea 要素
+let currentSuggestionTarget = null;
+
 // --- サジェスト共通状態 ---
 let currentSuggestionEditor = null; // どのテキストエリアか
 let currentSuggestionKind = null;   // "pos" | "neg" | "presetPos" | "presetNeg"
@@ -525,7 +530,7 @@ function deleteSelectedWords() {
 function syncWordsFromPosText(text) {
   const tokens = getTokensFromText(text);
   renderWords(tokens, "pos");
-  // サジェスト更新は editorPosEl 側のイベントで行う
+  // ★ サジェスト更新は editor のイベント側で行うように変更
 }
 
 function syncWordsFromNegText(text) {
