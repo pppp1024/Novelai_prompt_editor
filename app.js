@@ -560,6 +560,7 @@ function getCurrentToken(text, cursorPos) {
 
 // --- 候補一覧を平坦化して取得 ---
 function getAllCandidates() {
+  // appData.candidateGroups はポジ/ネガ共通で使う
   return appData.candidateGroups
     .flatMap(g => g.items)
     .filter(x => x && x.trim().length > 0);
@@ -622,6 +623,7 @@ function showSuggestionsFor(kind, editorEl) {
   const candidates = getAllCandidates();
   suggestionsEl.innerHTML = "";
 
+  // 1文字もないときは表示しない（スペースだけなども除外）
   if (!currentToken) {
     hideSuggestions();
     return;
@@ -668,7 +670,7 @@ function applySuggestion(currentToken, suggestion) {
   const { kind, editor } = currentSuggestionTarget;
   if (!editor) return;
 
-  // ★ Undo 対応
+  // ★ Undo 対応（kind は "pos" / "neg" / "presetPos" / "presetNeg"）
   saveUndoBeforeChange(kind);
 
   const originalText = editor.value || "";
@@ -676,6 +678,7 @@ function applySuggestion(currentToken, suggestion) {
   const left = originalText.slice(0, pos);
   const right = originalText.slice(pos);
 
+  // currentToken の末尾を suggestion に置き換えつつ ", " を付ける
   const tokenWithComma = suggestion + ", ";
   const replacedLeft = left.replace(/([^,、\n\s]+)$/, tokenWithComma);
   const newText = replacedLeft + right;
@@ -725,11 +728,9 @@ function attachSuggestHandlers(editorEl, kind) {
   // 日本語入力開始
   editorEl.addEventListener("compositionstart", () => {
     isComposing = true;
-    // ★ ここでも一応更新しておく（必要なければ消してOK）
-    showSuggestionsFor(kind, editorEl);
   });
 
-  // 日本語入力中（変換中）も、今のテキストから候補を出す
+  // 日本語入力中（変換中）→ 現在の内容から候補を更新
   editorEl.addEventListener("compositionupdate", () => {
     showSuggestionsFor(kind, editorEl);
   });
@@ -740,8 +741,9 @@ function attachSuggestHandlers(editorEl, kind) {
     showSuggestionsFor(kind, editorEl);
   });
 
-  // 入力のたびにサジェスト更新（★ isComposing でも止めない）
+  // 通常入力（英数字など）
   editorEl.addEventListener("input", () => {
+    // IME 変換中でも止めずに常に更新
     showSuggestionsFor(kind, editorEl);
   });
 
@@ -766,8 +768,10 @@ attachSuggestHandlers(presetEditorNegEl, "presetNeg");
 document.addEventListener("click", (e) => {
   const target = e.target;
 
+  // サジェスト自体をクリックしたときは閉じない
   if (suggestionsEl.contains(target)) return;
 
+  // 4つのエディタをクリックしたときも閉じない
   if (
     target === editorPosEl ||
     target === editorNegEl ||
