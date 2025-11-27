@@ -755,7 +755,6 @@ function attachSuggestHandlers(editorEl, kind) {
     showSuggestionsFor(kind, editorEl);
   });
 }
-}
 
 // 実際に4エディタへハンドラを付ける
 attachSuggestHandlers(editorPosEl, "pos");
