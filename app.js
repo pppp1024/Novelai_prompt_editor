@@ -722,28 +722,39 @@ function attachSuggestHandlers(editorEl, kind) {
 
   let isComposing = false;
 
+  // 日本語入力開始
   editorEl.addEventListener("compositionstart", () => {
     isComposing = true;
+    // ★ ここでも一応更新しておく（必要なければ消してOK）
+    showSuggestionsFor(kind, editorEl);
   });
 
+  // 日本語入力中（変換中）も、今のテキストから候補を出す
+  editorEl.addEventListener("compositionupdate", () => {
+    showSuggestionsFor(kind, editorEl);
+  });
+
+  // 日本語入力確定
   editorEl.addEventListener("compositionend", () => {
     isComposing = false;
     showSuggestionsFor(kind, editorEl);
   });
 
+  // 入力のたびにサジェスト更新（★ isComposing でも止めない）
   editorEl.addEventListener("input", () => {
-    if (isComposing) return; // 日本語変換中は様子見
     showSuggestionsFor(kind, editorEl);
   });
 
+  // 矢印キーなどでカーソル動かしたときも更新
   editorEl.addEventListener("keyup", () => {
-    if (isComposing) return;
     showSuggestionsFor(kind, editorEl);
   });
 
+  // マウス／タップでカーソル移動したときも更新
   editorEl.addEventListener("click", () => {
     showSuggestionsFor(kind, editorEl);
   });
+}
 }
 
 // 実際に4エディタへハンドラを付ける
