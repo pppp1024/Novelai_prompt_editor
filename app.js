@@ -562,6 +562,23 @@ function getCurrentToken(text, cursorPos) {
   const last = parts[parts.length - 1] || "";
   return last.trim();
 }
+function updateSuggestionsForEditor(editorEl, kind) {
+  if (!editorEl) return;
+  const text = editorEl.value;
+  const cursorPos = editorEl.selectionStart || 0;
+  const currentToken = getCurrentToken(text, cursorPos);
+
+  // どのエディタに対するサジェストか保存
+  currentSuggestionTarget = { kind, editor: editorEl };
+
+  renderSuggestions(currentToken, getAllCandidates());
+}
+
+function hideSuggestions() {
+  suggestionsEl.innerHTML = "";
+  currentSuggestionTarget = null;
+}
+
 
 function getAllCandidates() {
   return appData.candidateGroups
@@ -627,39 +644,40 @@ function updateSuggestionsForEditor(kind, editorEl) {
 }
 
 // --- サジェスト描画（部分一致／どのエディタでもOK） ---
-function renderSuggestions(currentToken, candidates, kind, editorEl) {
+function renderSuggestions(currentToken, candidates) {
   suggestionsEl.innerHTML = "";
-
-  if (!currentToken || !editorEl) {
+  if (!currentToken) {
     hideSuggestions();
     return;
   }
 
   const lower = currentToken.toLowerCase();
 
-  // ★部分一致：includesでフィルタ
-  const filtered = candidates.filter(c =>
-    c.toLowerCase().includes(lower)
-  );
+  // 部分一致（includes）＋ 前方一致（startsWith）を優先してソート
+  let filtered = candidates.filter(c => c.toLowerCase().includes(lower));
 
   if (filtered.length === 0) {
     hideSuggestions();
     return;
   }
 
-  suggestionsEl.style.display = "block";
-  currentSuggestionEditor = editorEl;
-  currentSuggestionKind = kind;
+  filtered.sort((a, b) => {
+    const la = a.toLowerCase();
+    const lb = b.toLowerCase();
+    const aStarts = la.startsWith(lower);
+    const bStarts = lb.startsWith(lower);
+    if (aStarts && !bStarts) return -1;
+    if (!aStarts && bStarts) return 1;
+    return la.localeCompare(lb);
+  });
 
   filtered.slice(0, 10).forEach(c => {
     const btn = document.createElement("button");
     btn.className = "suggestion-btn";
     btn.textContent = c;
-    btn.onclick = () => applySuggestionForEditor(kind, editorEl, c);
+    btn.onclick = () => applySuggestion(currentToken, c);
     suggestionsEl.appendChild(btn);
   });
-
-  updateSuggestionPosition(editorEl);
 }
 
 // --- サジェスト確定：どのエディタでもOK ---
