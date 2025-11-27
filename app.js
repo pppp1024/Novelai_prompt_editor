@@ -131,6 +131,12 @@ const wordsPosEl = document.getElementById("wordsPos");
 const wordsNegEl = document.getElementById("wordsNeg");
 const suggestionsEl = document.getElementById("suggestions");
 
+// ★ サジェスト用の要素は body 直下にぶら下げておく
+//    → mainView/presetView の display:none の影響を受けないようにする
+if (suggestionsEl && suggestionsEl.parentElement !== document.body) {
+  document.body.appendChild(suggestionsEl);
+}
+
 // ★ どのエディタに対するサジェストかを保持
 // kind: "pos" | "neg" | "presetPos" | "presetNeg"
 // editor: 対象の textarea 要素
@@ -382,6 +388,8 @@ function updateView() {
     activeEditor = "presetPos";
     renderPresetCategoryOptions();
   }
+// ★ タブ切り替え時はいったんサジェストを消す
+  hideSuggestions();
 }
 
 function getTokensFromText(text) {
@@ -608,13 +616,19 @@ function updateSuggestionsForEditor(editorEl, kind) {
   // どのエディタに対するサジェストかを記録
   currentSuggestionTarget = { kind, editor: editorEl };
 
-  // エディタの直下に表示
+  // ★ エディタの位置に合わせて表示（スクロールしてもズレないように absolute＋scrollXY）
   const rect = editorEl.getBoundingClientRect();
-  suggestionsEl.style.position = "fixed";
-  suggestionsEl.style.left = rect.left + "px";
-  suggestionsEl.style.top = (rect.bottom + 4) + "px";
+  const top = window.scrollY + rect.bottom + 4;
+  const left = window.scrollX + rect.left;
+
+  suggestionsEl.style.position = "absolute";
+  suggestionsEl.style.left = left + "px";
+  suggestionsEl.style.top = top + "px";
+  suggestionsEl.style.zIndex = 9999;  // 手前に出す
   suggestionsEl.style.display = "block";
 }
+
+  
 
 // --- サジェスト確定：どのエディタでもOK ---
 function applySuggestion(currentToken, suggestion) {
