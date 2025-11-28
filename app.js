@@ -232,18 +232,6 @@ let dragInfoWordEdit = null;
 let wordsMultiSelectMode = false;
 let selectedWordIndices = new Set();
 
-// タブ編集モーダル
-const tabEditModal = document.getElementById("tabEditModal");
-const tabEditListEl = document.getElementById("tabEditList");
-const editTabsBtn = document.getElementById("editTabsBtn");
-
-if (editTabsBtn && tabEditModal && tabEditListEl) {
-  editTabsBtn.onclick = () => {
-    renderTabEditList();
-    tabEditModal.style.display = "flex";
-  };
-}
-
 /* ==========================================
    ★ タブ一覧モーダル関連
    - 「タブ一覧」ボタンから開く
@@ -1097,91 +1085,6 @@ document.getElementById("newTabBtn").onclick = () => {
   renderTabs();
   updateView();
 };
-
-document.getElementById("editTabsBtn").onclick = () => {
-  renderTabEditList();
-  tabEditModal.style.display = "flex";
-};
-
-function closeTabEditModal() {
-  tabEditModal.style.display = "none";
-}
-window.closeTabEditModal = closeTabEditModal;
-
-function renderTabEditList() {
-  tabEditListEl.innerHTML = "";
-  appData.tabs.forEach((tab, idx) => {
-    const row = document.createElement("div");
-    row.className = "candidate-row";
-
-    const nameInput = document.createElement("input");
-    nameInput.type = "text";
-    nameInput.value = tab.title;
-    if (tab.id === currentTabId && activeView === "main") {
-      nameInput.style.fontWeight = "600";
-    }
-    nameInput.oninput = (e) => {
-      tab.title = e.target.value;
-      saveAppData();
-      renderTabs();
-    };
-
-    const upBtn = document.createElement("button");
-    upBtn.textContent = "↑";
-    upBtn.disabled = (idx === 0);
-    upBtn.onclick = () => {
-      if (idx === 0) return;
-      const tmp = appData.tabs[idx - 1];
-      appData.tabs[idx - 1] = appData.tabs[idx];
-      appData.tabs[idx] = tmp;
-      saveAppData();
-      renderTabs();
-      renderTabEditList();
-    };
-
-    const downBtn = document.createElement("button");
-    downBtn.textContent = "↓";
-    downBtn.disabled = (idx === appData.tabs.length - 1);
-    downBtn.onclick = () => {
-      if (idx === appData.tabs.length - 1) return;
-      const tmp = appData.tabs[idx + 1];
-      appData.tabs[idx + 1] = appData.tabs[idx];
-      appData.tabs[idx] = tmp;
-      saveAppData();
-      renderTabs();
-      renderTabEditList();
-    };
-
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "削除";
-    delBtn.onclick = () => {
-      if (appData.tabs.length === 1) {
-        alert("タブが1つだけのときは削除できません。");
-        return;
-      }
-      if (!confirm(`タブ「${tab.title}」を削除しますか？`)) return;
-
-      const removingCurrent = (tab.id === currentTabId);
-      appData.tabs.splice(idx, 1);
-      if (removingCurrent) {
-        const newIdx = Math.max(0, idx - 1);
-        currentTabId = appData.tabs[newIdx].id;
-      }
-      activeView = "main";
-      saveAppData();
-      renderTabs();
-      updateView();
-      renderTabEditList();
-    };
-
-    row.appendChild(nameInput);
-    row.appendChild(upBtn);
-    row.appendChild(downBtn);
-    row.appendChild(delBtn);
-
-    tabEditListEl.appendChild(row);
-  });
-}
 
 // --- 候補ページ ---
 const candidatePage = document.getElementById("candidatePage");
