@@ -410,17 +410,50 @@
       .tab-add-button {
         flex: 0 0 auto;
       }
-      /* ============================
-   スマホ向け：タブボタンだけ拡大
+    }
+    /* ============================
+   スマホ向け：タブバーを下に固定
+   ＋ タブボタンを大きく
    ============================ */
 @media (max-width: 768px) {
+  /* 下に固定したタブバーのぶんだけ余白を確保 */
+  body {
+    padding-bottom: 80px;  /* 必要なら数値はお好みで調整 */
+  }
+
+  header {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    margin: 0;
+    padding: 6px 8px;
+
+    background: #fafafa;
+    border-top: 1px solid #ccc;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.08);
+
+    z-index: 1000;
+
+    /* すでに display:flex なので、そのままボトムナビっぽくなる */
+  }
+
+  /* タブが横に増えたときは横スクロールできるように */
+  header #tabs {
+    flex: 1;
+    overflow-x: auto;
+  }
+
+  /* タブ系ボタンだけ大きくする */
   .tab-button,
   .tab-add-button {
-    padding: 10px 14px;   /* クリックしやすい大きさ */
-    font-size: 16px;      /* 字も少し大きく */
-    border-radius: 10px;  /* 少し丸みをつける */
+    padding: 10px 14px;
+    font-size: 16px;
+    border-radius: 10px;
   }
 }
+      
 }
     }
   </style>
