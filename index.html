@@ -681,6 +681,20 @@
     </div>
   </div>
 
+  <!-- ▼ タブ一覧モーダル -->
+<div class="modal-backdrop" id="tabListModal">
+  <div class="modal" style="width: 90vw; max-width: 480px;">
+    <div class="modal-header">
+      <h2>タブ一覧</h2>
+      <button class="modal-close" onclick="closeTabListModal()">×</button>
+    </div>
+
+    <div id="tabListContainer" style="padding: 8px; display: flex; flex-direction: column; gap: 8px;">
+      <!-- JSでタブ一覧を生成 -->
+    </div>
+  </div>
+</div>
+
   <!-- ▼ ここで候補リストを外部ファイルから読み込む -->
   <script src="candidates.js"></script>
 
