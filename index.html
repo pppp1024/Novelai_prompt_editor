@@ -411,38 +411,16 @@
         flex: 0 0 auto;
       }
       /* ============================
-   スマホ向けボタン拡大調整
+   スマホ向け：タブボタンだけ拡大
    ============================ */
 @media (max-width: 768px) {
-  /* タブボタン・追加ボタン */
   .tab-button,
   .tab-add-button {
-    padding: 10px 14px;
-    font-size: 15px;
-    border-radius: 10px;
+    padding: 10px 14px;   /* クリックしやすい大きさ */
+    font-size: 16px;      /* 字も少し大きく */
+    border-radius: 10px;  /* 少し丸みをつける */
   }
-
-  /* ツールバーの通常ボタン */
-  .toolbar button,
-  .subtoolbar button {
-    padding: 10px 14px;
-    font-size: 15px;
-    border-radius: 10px;
-  }
-
-  /* モーダル内のボタン（候補/プリセット） */
-  .candidate-group-header button,
-  #candidateMultiAddBtn,
-  #toggleCandidateEditBtn,
-  .modal-header button,
-  #presetMultiAddBtn,
-  #presetCreateBtn,
-  #backupExportBtn,
-  #backupImportBtn {
-    padding: 8px 12px;
-    font-size: 14px;
-    border-radius: 8px;
-  }
+}
 }
     }
   </style>
