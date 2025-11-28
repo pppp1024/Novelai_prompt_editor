@@ -428,6 +428,13 @@
     border-radius: 10px;
   }
 }
+    /* PC／共通で使う tab-scroll */
+.tab-scroll {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1 1 auto;  /* タブ部分が広がる */
+}
     
   </style>
 </head>
@@ -438,7 +445,6 @@
 
   <!-- タブ＋追加ボタン＋タブ編集ボタン＋バックアップ＋ヘルプ -->
   <header>
-    <header>
   <!-- 横スクロールさせたい部分 -->
   <div class="tab-scroll">
     <div id="tabs"></div>
