@@ -19,7 +19,7 @@
       margin-bottom: 4px;
     }
 
-    /* タブまわり */
+    /* タブまわり（PC／共通） */
     header {
       display: flex;
       gap: 4px;
@@ -39,6 +39,7 @@
       background: #f0f0f0;
       font-size: 13px;
       color: #333;
+      white-space: nowrap;
     }
     .tab-button.active {
       background: #007aff;
@@ -54,6 +55,7 @@
       background: #e9e9e9;
       font-size: 16px;
       line-height: 1;
+      white-space: nowrap;
     }
 
     .section-label {
@@ -156,26 +158,13 @@
       cursor: pointer;
     }
 
-    /* ▼ 候補サジェスト用（各エディタ直下に表示） */
     .suggestions {
-      position: absolute;      /* editor-wrapper を基準に絶対配置 */
-      left: 0;
-      right: 0;
-      top: 100%;               /* textarea のすぐ下 */
-      margin-top: 4px;
-      z-index: 1000;
-
-      display: none;           /* JS から必要なときだけ表示 */
+      margin-top: 8px;
+      display: flex;
       flex-wrap: wrap;
       gap: 4px;
-
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 4px;
-      box-sizing: border-box;
+      /* 位置は JS から制御 */
     }
-
     .suggestion-btn {
       padding: 3px 6px;
       border-radius: 6px;
@@ -379,6 +368,49 @@
       min-height: 160px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
+
+    /* ============================
+       スマホ向けレイアウト調整
+       タブバーを画面下固定にする
+       ============================ */
+    @media (max-width: 768px) {
+      body {
+        /* 下にタブバーが来るので、その分だけ余白を足す */
+        padding-bottom: 72px;
+      }
+
+      header {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: 0;
+        padding: 6px 8px;
+        box-sizing: border-box;
+        background: #f8f8f8;
+        border-top: 1px solid #ddd;
+        z-index: 1000;
+
+        /* タブとボタンを1行にまとめて横スクロール可能にする */
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 4px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* タブ部分は横スクロールしやすいように */
+      #tabs {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+      }
+
+      .tab-button,
+      .tab-add-button {
+        flex: 0 0 auto;
+      }
+    }
   </style>
 </head>
 <body>
@@ -401,8 +433,6 @@
     <div class="editor-wrapper">
       <textarea id="editorPos" class="textarea-pos"
         placeholder="ここにポジティブプロンプトを書きます（例: 1girl, solo, dynamic angle, ）"></textarea>
-      <!-- ポジ用サジェスト -->
-      <div class="suggestions" id="suggestionsPos"></div>
     </div>
 
     <div class="toolbar">
@@ -415,13 +445,12 @@
     </div>
 
     <div class="chips" id="wordsPos" style="display:none;"></div>
+    <div class="suggestions" id="suggestions"></div>
 
     <div class="section-label">ネガティブプロンプト</div>
     <div class="editor-wrapper">
       <textarea id="editorNeg" class="textarea-neg"
         placeholder="ここにネガティブプロンプトを書きます（例: lowres, blurry, watermark, ）"></textarea>
-      <!-- ネガ用サジェスト -->
-      <div class="suggestions" id="suggestionsNeg"></div>
     </div>
 
     <div class="subtoolbar">
@@ -442,8 +471,6 @@
     <div class="editor-wrapper">
       <textarea id="presetEditorPos" class="textarea-pos"
         placeholder="ここにプリセットのポジティブプロンプトを書きます（例: masterpiece, best quality, ultra-detailed, ）"></textarea>
-      <!-- プリセット・ポジ用サジェスト -->
-      <div class="suggestions" id="suggestionsPresetPos"></div>
     </div>
     <!-- ポジティブ用ツールバー -->
     <div class="toolbar">
@@ -457,8 +484,6 @@
     <div class="editor-wrapper">
       <textarea id="presetEditorNeg" class="textarea-neg"
         placeholder="ここにプリセットのネガティブプロンプトを書きます（例: lowres, blurry, worst quality, ）"></textarea>
-      <!-- プリセット・ネガ用サジェスト -->
-      <div class="suggestions" id="suggestionsPresetNeg"></div>
     </div>
     <!-- ネガティブ用ツールバー -->
     <div class="toolbar">
@@ -653,7 +678,7 @@
   <!-- ▼ ここで候補リストを外部ファイルから読み込む -->
   <script src="candidates.js"></script>
 
-  <!-- メインロジック app.jsに移動-->
+  <!-- メインロジック -->
   <script src="app.js"></script>
 </body>
 </html>
