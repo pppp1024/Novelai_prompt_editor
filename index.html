@@ -19,6 +19,28 @@
       margin-bottom: 4px;
     }
 
+        .app-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .top-right-buttons {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 4px;
+      flex: 0 0 auto;
+      align-items: center;
+      margin-left: 4px;
+    }
+
     /* タブまわり（PC／共通） */
     header {
       display: flex;
@@ -401,13 +423,30 @@
     gap: 4px;
   }
 
-  /* タブ＆＋＆⚙＆💾＆？ をまとめて横スクロールさせる箱 */
+    /* タブ部分だけ横スクロールさせる箱 */
   .tab-scroll {
     display: flex;
     flex: 1 1 auto;
     flex-wrap: nowrap;
     overflow-x: auto;
     gap: 4px;
+  }
+
+  .tab-scroll > * {
+    flex: 0 0 auto;   /* 1行に並べてスクロールさせる */
+  }
+
+  /* 右端に固定される ＋ と 一覧 */
+  .header-right {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    margin-left: 4px;
+  }
+
+  #newTabBtn,
+  #tabListBtn {
+    flex: 0 0 auto;
   }
 
   .tab-scroll > * {
@@ -432,23 +471,29 @@
   </style>
 </head>
 <body>
-  <div class="app-title">
-    NovelAI プロンプト管理ツール（プロンプト管理用Webアプリ）
+    <!-- タイトル＋上部ボタン -->
+  <div class="app-header-top">
+    <div class="app-title">
+      NovelAI プロンプト管理ツール（プロンプト管理用Webアプリ）
+    </div>
+    <div class="top-right-buttons">
+      <button id="backupBtn" class="tab-add-button" title="バックアップ" style="font-size:12px;">💾</button>
+      <button id="helpBtn" class="tab-add-button" title="ヘルプ" style="font-size:12px;">？</button>
+    </div>
   </div>
 
-  <!-- タブ＋追加ボタン＋タブ編集ボタン＋バックアップ＋ヘルプ -->
+    <!-- タブ＋追加ボタン＋タブ一覧 -->
   <header>
-  <!-- 横スクロールさせたい部分 -->
-  <div class="tab-scroll">
-    <div id="tabs"></div>
-    <button id="newTabBtn" class="tab-add-button">＋</button>
-    <button id="editTabsBtn" class="tab-add-button" title="タブ編集" style="font-size:13px;">⚙</button>
-    <button id="backupBtn" class="tab-add-button" title="バックアップ" style="font-size:12px;">💾</button>
-    <button id="helpBtn" class="tab-add-button" title="ヘルプ" style="font-size:12px;">？</button>
-  </div>
+    <!-- 横スクロールさせたいタブ部分 -->
+    <div class="tab-scroll">
+      <div id="tabs"></div>
+    </div>
 
-  <!-- 右側に固定したい「一覧」ボタン -->
-  <button id="tabListBtn" class="tab-add-button" title="タブ一覧" style="font-size:13px;">一覧</button>
+    <!-- 右側に固定する ＋ と 一覧 -->
+    <div class="header-right">
+      <button id="newTabBtn" class="tab-add-button">＋</button>
+      <button id="tabListBtn" class="tab-add-button" title="タブ一覧" style="font-size:13px;">一覧</button>
+    </div>
   </header>
 
   <!-- メインビュー（通常のポジ/ネガ編集） -->
@@ -608,17 +653,6 @@
 
       <div id="presetSelectList"></div>
       <div id="presetPreview"></div>
-    </div>
-  </div>
-
-  <!-- タブ編集モーダル -->
-  <div class="modal-backdrop" id="tabEditModal">
-    <div class="modal" style="width: 95vw; max-width: 480px;">
-      <div class="modal-header">
-        <h2>タブ編集</h2>
-        <button class="modal-close" onclick="closeTabEditModal()">×</button>
-      </div>
-      <div id="tabEditList"></div>
     </div>
   </div>
 
