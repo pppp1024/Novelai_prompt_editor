@@ -113,7 +113,8 @@ if (savedRaw) {
 let candidateCollapsed = appData.candidateCollapsed || {};
 appData.candidateCollapsed = candidateCollapsed;
 
-let currentTabId = appData.tabs[0].id;
+// ★ 前回開いていたタブ／ビューを復元（なければデフォルト）
+let currentTabId = appData.currentTabId || appData.tabs[0].id;
 // "pos" | "neg" | "presetPos" | "presetNeg"
 let activeEditor = "pos";
 let activeView = "main";     // "main" | "preset"
@@ -339,6 +340,11 @@ backupImportBtn.onclick = () => {
 
 function saveAppData() {
   appData.candidateCollapsed = candidateCollapsed;
+
+  // ★ UI 状態も一緒に保存
+  appData.currentTabId = currentTabId;
+  appData.activeView = activeView;
+  
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
 }
 
@@ -367,6 +373,7 @@ function renderTabs() {
   presetBtn.textContent = "プリセット";
   presetBtn.onclick = () => {
     activeView = "preset";
+    saveAppData();       // ★ ビューも保存
     updateView();
     renderTabs();
   };
