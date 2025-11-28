@@ -232,21 +232,16 @@ let dragInfoWordEdit = null;
 let wordsMultiSelectMode = false;
 let selectedWordIndices = new Set();
 
-// タブ編集モーダル
-const tabEditModal = document.getElementById("tabEditModal");
-const tabEditListEl = document.getElementById("tabEditList");
-
 /* ==========================================
-   ★ タブ一覧モーダル関連（新規追加）
-   - ヘッダー右側の「タブ一覧」ボタンから開く
-   - 一覧からタップでタブ切り替え
+   ★ タブ一覧モーダル関連
+   - 「タブ一覧」ボタンから開く
+   - 一覧でリネーム／並び替え／削除／切り替え
    ========================================== */
 const tabListModal = document.getElementById("tabListModal");
-// HTML の id="tabListContainer" に合わせる
 const tabListListEl = document.getElementById("tabListContainer");
 const tabListBtn = document.getElementById("tabListBtn");
 
-// ボタン・モーダル・リスト要素が揃っている場合のみ動作（古いHTMLでもエラーにならないようにガード）
+// ボタン・モーダル・リスト要素が揃っている場合のみ動作
 if (tabListBtn && tabListModal && tabListListEl) {
   tabListBtn.onclick = () => {
     renderTabListModal();
@@ -265,42 +260,134 @@ function renderTabListModal() {
   if (!tabListListEl) return;
   tabListListEl.innerHTML = "";
 
-  // 通常タブ一覧
-  appData.tabs.forEach(tab => {
-    const btn = document.createElement("button");
-    btn.className = "tab-button";
-    if (activeView === "main" && tab.id === currentTabId) {
-      btn.classList.add("active");
+  // 各タブを1行ずつ編集できるように表示
+  appData.tabs.forEach((tab, idx) => {
+    const row = document.createElement("div");
+    row.className = "candidate-row";
+
+    // 現在のタブかどうかでボタン表示変更
+    const selectBtn = document.createElement("button");
+    const isActive = (activeView === "main" && tab.id === currentTabId);
+    if (isActive) {
+      selectBtn.textContent = "選択中";
+      selectBtn.disabled = true;
+      selectBtn.style.fontWeight = "600";
+    } else {
+      selectBtn.textContent = "切り替え";
+      selectBtn.onclick = () => {
+        activeView = "main";
+        currentTabId = tab.id;
+        saveAppData();
+        updateView();
+        renderTabs();
+        closeTabListModal();
+      };
     }
-    btn.textContent = tab.title;
-    btn.style.width = "100%";
-    btn.onclick = () => {
+
+    // タブ名編集
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = tab.title;
+    nameInput.style.flex = "1";
+    if (isActive) {
+      nameInput.style.fontWeight = "600";
+    }
+    nameInput.oninput = (e) => {
+      tab.title = e.target.value;
+      saveAppData();
+      renderTabs();
+    };
+
+    // 上下移動
+    const upBtn = document.createElement("button");
+    upBtn.textContent = "↑";
+    upBtn.disabled = (idx === 0);
+    upBtn.onclick = () => {
+      if (idx === 0) return;
+      const tmp = appData.tabs[idx - 1];
+      appData.tabs[idx - 1] = appData.tabs[idx];
+      appData.tabs[idx] = tmp;
+      saveAppData();
+      renderTabs();
+      renderTabListModal();
+    };
+
+    const downBtn = document.createElement("button");
+    downBtn.textContent = "↓";
+    downBtn.disabled = (idx === appData.tabs.length - 1);
+    downBtn.onclick = () => {
+      if (idx === appData.tabs.length - 1) return;
+      const tmp = appData.tabs[idx + 1];
+      appData.tabs[idx + 1] = appData.tabs[idx];
+      appData.tabs[idx] = tmp;
+      saveAppData();
+      renderTabs();
+      renderTabListModal();
+    };
+
+    // 削除
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "削除";
+    delBtn.onclick = () => {
+      if (appData.tabs.length === 1) {
+        alert("タブが1つだけのときは削除できません。");
+        return;
+      }
+      if (!confirm(`タブ「${tab.title}」を削除しますか？`)) return;
+
+      const removingCurrent = (tab.id === currentTabId);
+      appData.tabs.splice(idx, 1);
+      if (removingCurrent) {
+        const newIdx = Math.max(0, idx - 1);
+        currentTabId = appData.tabs[newIdx].id;
+      }
       activeView = "main";
-      currentTabId = tab.id;
+      saveAppData();
+      renderTabs();
+      updateView();
+      renderTabListModal();
+    };
+
+    row.appendChild(selectBtn);
+    row.appendChild(nameInput);
+    row.appendChild(upBtn);
+    row.appendChild(downBtn);
+    row.appendChild(delBtn);
+
+    tabListListEl.appendChild(row);
+  });
+
+  // プリセット用の行も一番下に追加
+  const presetRow = document.createElement("div");
+  presetRow.className = "candidate-row";
+
+  const presetSelectBtn = document.createElement("button");
+  const isPresetActive = (activeView === "preset");
+  if (isPresetActive) {
+    presetSelectBtn.textContent = "選択中";
+    presetSelectBtn.disabled = true;
+    presetSelectBtn.style.fontWeight = "600";
+  } else {
+    presetSelectBtn.textContent = "切り替え";
+    presetSelectBtn.onclick = () => {
+      activeView = "preset";
       saveAppData();
       updateView();
       renderTabs();
       closeTabListModal();
     };
-    tabListListEl.appendChild(btn);
-  });
-
-  // プリセットタブも一覧に入れておく（任意）
-  const presetBtnInList = document.createElement("button");
-  presetBtnInList.className = "tab-button";
-  if (activeView === "preset") {
-    presetBtnInList.classList.add("active");
   }
-  presetBtnInList.textContent = "プリセット";
-  presetBtnInList.style.width = "100%";
-  presetBtnInList.onclick = () => {
-    activeView = "preset";
-    saveAppData();
-    updateView();
-    renderTabs();
-    closeTabListModal();
-  };
-  tabListListEl.appendChild(presetBtnInList);
+
+  const presetLabel = document.createElement("input");
+  presetLabel.type = "text";
+  presetLabel.value = "プリセット";
+  presetLabel.disabled = true;
+  presetLabel.style.flex = "1";
+  presetLabel.style.background = "#f9f9f9";
+
+  presetRow.appendChild(presetSelectBtn);
+  presetRow.appendChild(presetLabel);
+  tabListListEl.appendChild(presetRow);
 }
 
 // プリセットカテゴリ編集モーダル
