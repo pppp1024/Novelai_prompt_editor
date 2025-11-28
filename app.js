@@ -236,6 +236,72 @@ let selectedWordIndices = new Set();
 const tabEditModal = document.getElementById("tabEditModal");
 const tabEditListEl = document.getElementById("tabEditList");
 
+/* ==========================================
+   ★ タブ一覧モーダル関連（新規追加）
+   - ヘッダー右側の「タブ一覧」ボタンから開く
+   - 一覧からタップでタブ切り替え
+   ========================================== */
+const tabListModal = document.getElementById("tabListModal");
+const tabListListEl = document.getElementById("tabListList");
+const tabListBtn = document.getElementById("tabListBtn");
+
+// ボタン・モーダル・リスト要素が揃っている場合のみ動作（古いHTMLでもエラーにならないようにガード）
+if (tabListBtn && tabListModal && tabListListEl) {
+  tabListBtn.onclick = () => {
+    renderTabListModal();
+    tabListModal.style.display = "flex";
+  };
+}
+
+function closeTabListModal() {
+  if (tabListModal) {
+    tabListModal.style.display = "none";
+  }
+}
+window.closeTabListModal = closeTabListModal;
+
+function renderTabListModal() {
+  if (!tabListListEl) return;
+  tabListListEl.innerHTML = "";
+
+  // 通常タブ一覧
+  appData.tabs.forEach(tab => {
+    const btn = document.createElement("button");
+    btn.className = "tab-button";
+    if (activeView === "main" && tab.id === currentTabId) {
+      btn.classList.add("active");
+    }
+    btn.textContent = tab.title;
+    btn.style.width = "100%";
+    btn.onclick = () => {
+      activeView = "main";
+      currentTabId = tab.id;
+      saveAppData();
+      updateView();
+      renderTabs();
+      closeTabListModal();
+    };
+    tabListListEl.appendChild(btn);
+  });
+
+  // プリセットタブも一覧に入れておく（任意）
+  const presetBtnInList = document.createElement("button");
+  presetBtnInList.className = "tab-button";
+  if (activeView === "preset") {
+    presetBtnInList.classList.add("active");
+  }
+  presetBtnInList.textContent = "プリセット";
+  presetBtnInList.style.width = "100%";
+  presetBtnInList.onclick = () => {
+    activeView = "preset";
+    saveAppData();
+    updateView();
+    renderTabs();
+    closeTabListModal();
+  };
+  tabListListEl.appendChild(presetBtnInList);
+}
+
 // プリセットカテゴリ編集モーダル
 const presetCategoryEditModal = document.getElementById("presetCategoryEditModal");
 const presetCategoryEditListEl = document.getElementById("presetCategoryEditList");
