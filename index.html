@@ -11,7 +11,6 @@
       margin: 0;
       padding: 8px;
       box-sizing: border-box;
-      position: relative; /* ← これを追加 */
     }
 
     .app-title {
@@ -92,7 +91,6 @@
       right: 6px;
       display: flex;
       gap: 4px;
-      z-index: 2;
     }
     .editor-actions button {
       border: none;
@@ -158,14 +156,26 @@
       cursor: pointer;
     }
 
+    /* ▼ 候補サジェスト用（各エディタ直下に表示） */
     .suggestions {
-      margin-top: 8px;
-      display: flex;
+      position: absolute;      /* editor-wrapper を基準に絶対配置 */
+      left: 0;
+      right: 0;
+      top: 100%;               /* textarea のすぐ下 */
+      margin-top: 4px;
+      z-index: 1000;
+
+      display: none;           /* JS から必要なときだけ表示 */
       flex-wrap: wrap;
       gap: 4px;
-      position: fixed;
-      z-index: 10000;
+
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 4px;
+      box-sizing: border-box;
     }
+
     .suggestion-btn {
       padding: 3px 6px;
       border-radius: 6px;
@@ -391,6 +401,8 @@
     <div class="editor-wrapper">
       <textarea id="editorPos" class="textarea-pos"
         placeholder="ここにポジティブプロンプトを書きます（例: 1girl, solo, dynamic angle, ）"></textarea>
+      <!-- ポジ用サジェスト -->
+      <div class="suggestions" id="suggestionsPos"></div>
     </div>
 
     <div class="toolbar">
@@ -408,6 +420,8 @@
     <div class="editor-wrapper">
       <textarea id="editorNeg" class="textarea-neg"
         placeholder="ここにネガティブプロンプトを書きます（例: lowres, blurry, watermark, ）"></textarea>
+      <!-- ネガ用サジェスト -->
+      <div class="suggestions" id="suggestionsNeg"></div>
     </div>
 
     <div class="subtoolbar">
@@ -428,6 +442,8 @@
     <div class="editor-wrapper">
       <textarea id="presetEditorPos" class="textarea-pos"
         placeholder="ここにプリセットのポジティブプロンプトを書きます（例: masterpiece, best quality, ultra-detailed, ）"></textarea>
+      <!-- プリセット・ポジ用サジェスト -->
+      <div class="suggestions" id="suggestionsPresetPos"></div>
     </div>
     <!-- ポジティブ用ツールバー -->
     <div class="toolbar">
@@ -441,6 +457,8 @@
     <div class="editor-wrapper">
       <textarea id="presetEditorNeg" class="textarea-neg"
         placeholder="ここにプリセットのネガティブプロンプトを書きます（例: lowres, blurry, worst quality, ）"></textarea>
+      <!-- プリセット・ネガ用サジェスト -->
+      <div class="suggestions" id="suggestionsPresetNeg"></div>
     </div>
     <!-- ネガティブ用ツールバー -->
     <div class="toolbar">
@@ -461,9 +479,6 @@
       <button id="openPresetCategoryEditBtn">カテゴリ編集</button>
     </div>
   </div>
-
-  <!-- ★ ポジ／ネガ／プリセット共通で使うサジェストボックス -->
-  <div class="suggestions" id="suggestions" style="display:none;"></div>
 
   <!-- 候補ページ（選択＋編集） -->
   <div class="modal-backdrop" id="candidatePage">
@@ -639,10 +654,6 @@
   <script src="candidates.js"></script>
 
   <!-- メインロジック app.jsに移動-->
-  <!-- メインロジック本体（元の巨大な script の中身をここに移す） -->
   <script src="app.js"></script>
-
-  <!-- ★ サジェスト用のコンテナをビューの外に置く -->
-  <div class="suggestions" id="suggestions" style="display:none;"></div>
 </body>
 </html>
