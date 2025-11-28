@@ -235,6 +235,14 @@ let selectedWordIndices = new Set();
 // タブ編集モーダル
 const tabEditModal = document.getElementById("tabEditModal");
 const tabEditListEl = document.getElementById("tabEditList");
+const editTabsBtn = document.getElementById("editTabsBtn");
+
+if (editTabsBtn && tabEditModal && tabEditListEl) {
+  editTabsBtn.onclick = () => {
+    renderTabEditList();
+    tabEditModal.style.display = "flex";
+  };
+}
 
 /* ==========================================
    ★ タブ一覧モーダル関連
