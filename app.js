@@ -106,14 +106,13 @@ if (savedRaw) {
       appData.candidateCollapsed = parsed.candidateCollapsed;
     }
 
-    // 保存していたUI状態を復元（なければ後でデフォルトを使う）
+    // ★ 前回の UI 状態も復元
     if (parsed.currentTabId) {
       appData.currentTabId = parsed.currentTabId;
     }
     if (parsed.activeView) {
       appData.activeView = parsed.activeView;
     }
-
   } catch (e) {
     console.warn("Failed to parse saved data", e);
   }
@@ -371,7 +370,7 @@ function renderTabs() {
     btn.onclick = () => {
       activeView = "main";
       currentTabId = tab.id;
-      saveAppData();
+      saveAppData();      // ★ タブ切り替え時にも保存
       updateView();
       renderTabs();
     };
@@ -389,68 +388,6 @@ function renderTabs() {
   };
   tabsEl.appendChild(presetBtn);
 }
-
-/* ==============================
-   タブ一覧モーダル
-   ============================== */
-
-const tabListModal = document.getElementById("tabListModal");
-const tabListBody  = document.getElementById("tabListBody");
-const tabListBtn   = document.getElementById("tabListBtn");
-
-function openTabListModal() {
-  renderTabListBody();
-  tabListModal.style.display = "flex";
-}
-
-function closeTabListModal() {
-  tabListModal.style.display = "none";
-}
-window.closeTabListModal = closeTabListModal;
-
-tabListBtn.onclick = () => {
-  openTabListModal();
-};
-
-function renderTabListBody() {
-  tabListBody.innerHTML = "";
-
-  if (!appData.tabs || appData.tabs.length === 0) {
-    const p = document.createElement("p");
-    p.textContent = "タブがありません。";
-    p.style.fontSize = "13px";
-    tabListBody.appendChild(p);
-    return;
-  }
-
-  appData.tabs.forEach(tab => {
-    const row = document.createElement("div");
-    row.className = "tab-list-item";
-
-    const nameBtn = document.createElement("button");
-    nameBtn.className = "tab-list-item-name";
-    nameBtn.textContent = tab.title || "(無題タブ)";
-    if (activeView === "main" && tab.id === currentTabId) {
-      nameBtn.classList.add("active");
-    }
-
-    nameBtn.onclick = () => {
-      activeView = "main";
-      currentTabId = tab.id;
-      saveAppData();
-      updateView();
-      renderTabs();
-      closeTabListModal();
-    };
-
-    row.appendChild(nameBtn);
-    tabListBody.appendChild(row);
-  });
-}
-
-/* ==============================
-   ビュー切り替え
-   ============================== */
 
 function updateView() {
   if (activeView === "main") {
@@ -473,10 +410,6 @@ function updateView() {
     renderPresetCategoryOptions();
   }
 }
-
-/* ==============================
-   テキストとトークン処理
-   ============================== */
 
 function getTokensFromText(text) {
   return text
@@ -1144,7 +1077,7 @@ toggleCandidateEditBtn.onclick = () => {
 };
 
 candidateMultiToggleEl.onchange = (e) => {
-  candidateMultiSelectMode = !candidateMultiSelectMode;
+  candidateMultiSelectMode = e.target.checked;
   candidateSelectedItems = [];
   renderCandidateSelectView();
 };
