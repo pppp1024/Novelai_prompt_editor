@@ -232,6 +232,10 @@ let dragInfoWordEdit = null;
 let wordsMultiSelectMode = false;
 let selectedWordIndices = new Set();
 
+// タブ編集モーダル
+const tabEditModal = document.getElementById("tabEditModal");
+const tabEditListEl = document.getElementById("tabEditList");
+
 /* ==========================================
    ★ タブ一覧モーダル関連
    - 「タブ一覧」ボタンから開く
