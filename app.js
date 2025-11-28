@@ -242,7 +242,8 @@ const tabEditListEl = document.getElementById("tabEditList");
    - 一覧からタップでタブ切り替え
    ========================================== */
 const tabListModal = document.getElementById("tabListModal");
-const tabListListEl = document.getElementById("tabListList");
+const // HTML の id="tabListContainer" に合わせる
+const tabListListEl = document.getElementById("tabListContainer");
 const tabListBtn = document.getElementById("tabListBtn");
 
 // ボタン・モーダル・リスト要素が揃っている場合のみ動作（古いHTMLでもエラーにならないようにガード）
