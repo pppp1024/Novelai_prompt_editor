@@ -5,181 +5,686 @@
   <title>NovelAI Prompt Editor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       margin: 0;
-      padding: 8px;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       background: #fafafa;
+      color: #222;
     }
 
-    header {
+    .app-root {
+      min-height: 100vh;
       display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 4px;
-      margin-bottom: 8px;
-      width: 100%;
-      box-sizing: border-box;
+      flex-direction: column;
+      padding-bottom: 60px; /* 下部タブバーの高さぶん余白 */
     }
 
-    /* タブ一覧（横スクロール） */
-    #tabs.tabs-scroll {
-      flex: 1 1 auto;
-      display: flex;
-      overflow-x: auto;
-      gap: 4px;
-      -webkit-overflow-scrolling: touch;
+    .app-header {
+      padding: 8px 12px 4px;
+      border-bottom: 1px solid #ddd;
+      background: #fff;
     }
 
-    .tab-button {
-      flex: 0 0 auto;
-      min-width: 84px;
-      padding: 8px 12px;
-      border: none;
-      background: #f0f0f0;
-      font-size: 13px;
-      border-radius: 4px;
-      white-space: nowrap;
-    }
-    .tab-button.active {
-      background: #1976d2;
-      color: #fff;
-      font-weight: 600;
-    }
-
-    /* タブ一覧ボタン（右端固定） */
-    #tabListBtn.tab-list-btn {
-      flex: 0 0 auto;
-      padding: 8px 12px;
-      background: #e0e0e0;
-      border: none;
-      border-radius: 4px;
-      font-size: 13px;
-      white-space: nowrap;
-    }
-
-    /* メイン領域 */
-    textarea {
-      width: 100%;
-      height: 120px;
-      box-sizing: border-box;
-      padding: 8px;
+    .app-title {
       font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+
+    .top-toolbar {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 4px 0 2px;
+    }
+
+    .top-toolbar button {
+      flex: 0 0 auto;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+    }
+
+    .main-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    h3 {
+      font-size: 13px;
+      margin: 8px 0 4px;
+    }
+
+    .editor-section {
+      margin-bottom: 12px;
+    }
+
+    .editor-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .editor-toolbar button {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
     }
 
     .editor-wrapper {
       position: relative;
     }
 
-    /* サジェスト表示エリア */
-    .suggestions {
-      display: none;
+    textarea {
+      width: 100%;
+      min-height: 72px;
+      font-size: 12px;
+      line-height: 1.4;
+      padding: 6px;
+      resize: vertical;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    .chips-row {
+      margin-top: 4px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      font-size: 11px;
+      border-radius: 999px;
+      background: #eee;
+    }
+
+    .chip-label {
+      white-space: nowrap;
+    }
+
+    /* --- サジェスト（各エディタごと）--- */
+    .suggestions-box {
       position: absolute;
       left: 0;
       right: 0;
-      top: calc(100% + 4px);
-      flex-direction: column;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      bottom: 100%;
+      transform: translateY(-4px);
+      display: none;
+      flex-wrap: wrap;
+      gap: 4px;
       padding: 4px;
-      z-index: 999;
-      max-height: 200px;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      max-height: 160px;
       overflow-y: auto;
+      z-index: 1000;
     }
 
     .suggestion-btn {
-      padding: 6px;
-      margin-bottom: 4px;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
       background: #f5f5f5;
-      border: none;
+      flex: 0 0 auto;
+    }
+
+    /* --- 下部タブバー --- */
+    .tabs-container {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 4px 8px;
+      background: #ffffff;
+      border-top: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 999;
+    }
+
+    .tabs-scroll {
+      flex: 1 1 auto;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    #tabs {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 4px;
+    }
+
+    .tab-button {
+      flex: 0 0 auto;
+      min-width: 80px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .tab-button.active {
+      background: #1976d2;
+      border-color: #1976d2;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .tab-list-button {
+      flex: 0 0 auto;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #1976d2;
+      background: #e3f2fd;
+      color: #1976d2;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    /* --- モーダル系 共通 --- */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .modal-content {
+      max-width: 520px;
+      width: 92%;
+      max-height: 80vh;
+      background: #fff;
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .modal-header h2 {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 4px 0;
+      font-size: 12px;
+    }
+
+    .modal-footer {
+      margin-top: 6px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .modal-close-btn {
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+    }
+
+    .candidate-group {
+      border: 1px solid #ddd;
       border-radius: 4px;
-      text-align: left;
+      padding: 4px;
+      margin-bottom: 4px;
+      background: #fafafa;
     }
 
-    .suggestion-btn:last-child {
-      margin-bottom: 0;
+    .candidate-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      margin-bottom: 2px;
     }
 
-    /* モーダル、候補一覧などのスタイルは省略（あなたの現行コードと互換） */
+    .candidate-group-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .candidate-row {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .candidate-row input,
+    .candidate-row textarea {
+      flex: 1;
+      font-size: 12px;
+    }
+
+    .candidate-row button {
+      font-size: 11px;
+      padding: 2px 6px;
+    }
+
+    .modal-subtoolbar {
+      margin-bottom: 4px;
+      gap: 6px;
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .words-edit-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .chip-weight-btn,
+    .chip-close {
+      font-size: 10px;
+      padding: 0 3px;
+      margin-left: 2px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+    }
+
+    .chip-weight-input {
+      width: 40px;
+      font-size: 10px;
+      margin-left: 2px;
+    }
+
+    .words-edit-hint {
+      font-size: 11px;
+      margin: 0 0 4px;
+      color: #555;
+    }
+
+    .words-edit-empty {
+      font-size: 11px;
+      color: #777;
+    }
+
+    .chip.dragging {
+      opacity: 0.6;
+      border: 1px dashed #999;
+    }
+
+    .chip.selected {
+      background: #bbdefb;
+    }
+
+    .modal-subtoolbar label {
+      font-size: 11px;
+    }
+
+    /* タブ一覧モーダル用 */
+    .tab-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .tab-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 12px;
+    }
+
+    .tab-list li button {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+    }
+
+    @media (min-width: 768px) {
+      textarea {
+        min-height: 100px;
+      }
+    }
   </style>
 </head>
+
 <body>
+  <div class="app-root">
+    <!-- 上部ヘッダー -->
+    <header class="app-header">
+      <p class="app-title">NovelAI Prompt Editor</p>
+      <div class="top-toolbar">
+        <button id="newTabBtn">＋ タブ追加</button>
+        <button id="editTabsBtn">タブ編集</button>
+        <button id="backupBtn">JSONバックアップ</button>
+        <button id="helpBtn">ヘルプ</button>
+        <button id="openPresetCategoryEditBtn">プリセットカテゴリ管理</button>
+      </div>
+    </header>
 
-  <!-- ⭐ 上部タブバー（修正版） -->
-  <header>
-    <div id="tabs" class="tabs-scroll"></div>
-    <button id="tabListBtn" class="tab-list-btn">一覧</button>
-  </header>
+    <!-- メイン領域 -->
+    <main class="main-area">
+      <!-- メインタブ（ポジ／ネガ） -->
+      <div id="mainView">
+        <!-- ポジティブ -->
+        <section class="editor-section">
+          <h3>ポジティブプロンプト</h3>
+          <div class="editor-toolbar">
+            <button id="copyPosBtn">コピー</button>
+            <button id="posClearBtn">クリア</button>
+            <button id="posUndoBtn">Undo</button>
+            <button id="editWordsBtn">単語編集</button>
+            <button id="openCandidatesBtn">候補</button>
+            <button id="openPresetsBtn">プリセット適用</button>
+          </div>
+          <div class="editor-wrapper">
+            <textarea id="editorPos" placeholder="ポジティブプロンプトをここに入力"></textarea>
+            <div id="suggestionsPos" class="suggestions-box"></div>
+          </div>
+          <div id="wordsPos" class="chips-row"></div>
+        </section>
 
-  <!-- ===============================
-       メインビュー
-       =============================== -->
-  <div id="mainView">
+        <!-- ネガティブ -->
+        <section class="editor-section">
+          <h3>ネガティブプロンプト</h3>
+          <div class="editor-toolbar">
+            <button id="copyNegBtn">コピー</button>
+            <button id="negClearBtn">クリア</button>
+            <button id="negUndoBtn">Undo</button>
+            <button id="editWordsNegBtn">単語編集</button>
+            <button id="openCandidatesNegBtn">候補</button>
+            <button id="openPresetsNegBtn">プリセット適用</button>
+          </div>
+          <div class="editor-wrapper">
+            <textarea id="editorNeg" placeholder="ネガティブプロンプトをここに入力"></textarea>
+            <div id="suggestionsNeg" class="suggestions-box"></div>
+          </div>
+          <div id="wordsNeg" class="chips-row"></div>
+        </section>
+      </div>
 
-    <h3>ポジティブプロンプト</h3>
-    <div class="editor-wrapper">
-      <textarea id="editorPos"></textarea>
-      <div id="suggestionsPos" class="suggestions"></div>
+      <!-- プリセット作成タブ -->
+      <div id="presetView" style="display:none;">
+        <!-- プリセット作成（ポジ） -->
+        <section class="editor-section">
+          <h3>プリセット作成（ポジ）</h3>
+          <div class="editor-toolbar">
+            <button id="presetPosClearBtn">クリア</button>
+            <button id="presetPosUndoBtn">Undo</button>
+            <button id="presetEditWordsPosBtn">単語編集</button>
+            <button id="presetOpenCandidatesPosBtn">候補</button>
+          </div>
+          <div class="editor-wrapper">
+            <textarea id="presetEditorPos" placeholder="プリセット用ポジティブ"></textarea>
+            <div id="suggestionsPresetPos" class="suggestions-box"></div>
+          </div>
+        </section>
+
+        <!-- プリセット作成（ネガ） -->
+        <section class="editor-section">
+          <h3>プリセット作成（ネガ）</h3>
+          <div class="editor-toolbar">
+            <button id="presetNegClearBtn">クリア</button>
+            <button id="presetNegUndoBtn">Undo</button>
+            <button id="presetEditWordsNegBtn">単語編集</button>
+            <button id="presetOpenCandidatesNegBtn">候補</button>
+          </div>
+          <div class="editor-wrapper">
+            <textarea id="presetEditorNeg" placeholder="プリセット用ネガティブ"></textarea>
+            <div id="suggestionsPresetNeg" class="suggestions-box"></div>
+          </div>
+        </section>
+
+        <section class="editor-section">
+          <h3>プリセット登録</h3>
+          <div class="editor-toolbar">
+            <label>
+              カテゴリ:
+              <select id="presetCategorySelect"></select>
+            </label>
+            <button id="presetCreateBtn">追加</button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- 下部タブバー（タブボタン＋タブ一覧ボタン） -->
+    <div class="tabs-container">
+      <div class="tabs-scroll">
+        <div id="tabs"></div>
+      </div>
+      <button id="tabListBtn" class="tab-list-button">一覧</button>
     </div>
-    <button id="copyPosBtn">コピー</button>
-    <button id="posClearBtn">クリア</button>
-    <button id="posUndoBtn">Undo</button>
-    <button id="editWordsBtn">単語編集</button>
-    <button id="openCandidatesBtn">候補</button>
-
-    <h3>ネガティブプロンプト</h3>
-    <div class="editor-wrapper">
-      <textarea id="editorNeg"></textarea>
-      <div id="suggestionsNeg" class="suggestions"></div>
-    </div>
-    <button id="copyNegBtn">コピー</button>
-    <button id="negClearBtn">クリア</button>
-    <button id="negUndoBtn">Undo</button>
-    <button id="editWordsNegBtn">単語編集</button>
-    <button id="openCandidatesNegBtn">候補</button>
-
-    <!-- 自動生成された単語チップ -->
-    <div id="wordsPos"></div>
-    <div id="wordsNeg"></div>
   </div>
 
-  <!-- ===============================
-       プリセットビュー
-       =============================== -->
-  <div id="presetView" style="display:none;">
+  <!-- ▼ 各種モーダル ▼ -->
 
-    <h3>プリセット作成（ポジ）</h3>
-    <div class="editor-wrapper">
-      <textarea id="presetEditorPos"></textarea>
-      <div id="suggestionsPresetPos" class="suggestions"></div>
+  <!-- タブ一覧モーダル -->
+  <div id="tabListModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>タブ一覧</h2>
+        <button class="modal-close-btn" onclick="window.closeTabListModal && window.closeTabListModal()">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <ul id="tabListContent" class="tab-list"></ul>
+      </div>
     </div>
-    <button id="presetPosClearBtn">クリア</button>
-    <button id="presetPosUndoBtn">Undo</button>
-    <button id="presetEditWordsPosBtn">単語編集</button>
-    <button id="presetOpenCandidatesPosBtn">候補</button>
-
-    <h3>プリセット作成（ネガ）</h3>
-    <div class="editor-wrapper">
-      <textarea id="presetEditorNeg"></textarea>
-      <div id="suggestionsPresetNeg" class="suggestions"></div>
-    </div>
-    <button id="presetNegClearBtn">クリア</button>
-    <button id="presetNegUndoBtn">Undo</button>
-    <button id="presetEditWordsNegBtn">単語編集</button>
-    <button id="presetOpenCandidatesNegBtn">候補</button>
-
-    <hr />
-    <select id="presetCategorySelect"></select>
-    <button id="openPresetCategoryEditBtn">カテゴリ管理</button>
-    <button id="presetCreateBtn">追加</button>
-
   </div>
 
-  <!-- ここに「候補」「タブ編集」「プリセット」「ヘルプ」「バックアップ」のモーダル群 -->
-  <!-- （あなたの app.js と既存 HTML ですでにあるため省略） -->
+  <!-- 候補モーダル -->
+  <div id="candidatePage" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>候補</h2>
+        <button class="modal-close-btn" onclick="closeCandidatePage()">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-subtoolbar">
+          <button id="toggleCandidateEditBtn">編集</button>
+          <label>
+            <input type="checkbox" id="candidateMultiToggle" />
+            複数選択
+          </label>
+          <button id="candidateMultiAddBtn">選択を挿入</button>
+        </div>
 
+        <div id="candidateSelectView">
+          <div id="candidateButtonList"></div>
+        </div>
+
+        <div id="candidateEditView" style="display:none;">
+          <div class="candidate-row">
+            <input id="newGroupNameInput" type="text" placeholder="新しいカテゴリ名" />
+            <button id="addGroupBtn">カテゴリ追加</button>
+          </div>
+          <div class="candidate-row">
+            <select id="quickAddGroupSelect"></select>
+            <input id="quickTagInput" type="text" placeholder="クイック追加" />
+            <button id="addQuickTagBtn">追加</button>
+          </div>
+          <div id="candidateEditList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 単語編集モーダル -->
+  <div id="wordsEditModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="wordsEditTitle">単語編集</h2>
+        <button class="modal-close-btn" onclick="closeWordsEditModal()">閉じる</button>
+      </div>
+      <div class="modal-body" id="wordsEditList"></div>
+    </div>
+  </div>
+
+  <!-- タブ編集モーダル -->
+  <div id="tabEditModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>タブ編集</h2>
+        <button class="modal-close-btn" onclick="closeTabEditModal()">閉じる</button>
+      </div>
+      <div class="modal-body" id="tabEditList"></div>
+    </div>
+  </div>
+
+  <!-- プリセットカテゴリ編集モーダル -->
+  <div id="presetCategoryEditModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>プリセットカテゴリ管理</h2>
+        <button class="modal-close-btn" onclick="closePresetCategoryEditModal()">閉じる</button>
+      </div>
+      <div class="modal-body" id="presetCategoryEditList"></div>
+    </div>
+  </div>
+
+  <!-- ヘルプモーダル -->
+  <div id="helpModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>ヘルプ</h2>
+        <button class="modal-close-btn" onclick="closeHelpModal()">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px; line-height:1.5;">
+          ・ポジ／ネガの候補からプロンプトを組み立てるツールです。<br/>
+          ・各テキストエリアに入力すると、カンマ区切りで単語チップが表示されます。<br/>
+          ・候補・プリセット機能を使って、よく使うパターンを素早く再利用できます。<br/>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSONバックアップモーダル -->
+  <div id="backupModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>JSONバックアップ</h2>
+        <button class="modal-close-btn" onclick="closeBackupModal()">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-subtoolbar">
+          <button id="backupExportBtn">エクスポート</button>
+          <button id="backupImportBtn">インポート</button>
+        </div>
+        <textarea id="backupTextarea" style="width:100%;height:200px;font-size:11px;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- プリセット選択モーダル -->
+  <div id="presetModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>プリセット選択</h2>
+        <button class="modal-close-btn" onclick="closePresetModal()">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-subtoolbar">
+          <label>
+            <input type="checkbox" id="presetMultiToggle" />
+            複数選択
+          </label>
+          <button id="presetMultiAddBtn">選択を適用</button>
+          <label style="margin-left:auto;font-size:11px;">
+            <input type="radio" name="presetApplyMode" value="append" checked />
+            追加
+          </label>
+          <label style="font-size:11px;">
+            <input type="radio" name="presetApplyMode" value="overwrite" />
+            上書き
+          </label>
+        </div>
+
+        <div id="presetSelectList"></div>
+
+        <pre id="presetPreview" style="margin-top:6px;padding:4px;background:#f5f5f5;font-size:11px;white-space:pre-wrap;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- app.js 読み込み -->
   <script src="app.js"></script>
+
+  <!-- タブ一覧モーダル用の簡単なスクリプト（app.js から呼ぶ関数） -->
+  <script>
+    const tabListModal = document.getElementById("tabListModal");
+    const tabListContent = document.getElementById("tabListContent");
+    const tabListBtn = document.getElementById("tabListBtn");
+
+    function openTabListModal(tabs, currentTabId) {
+      tabListContent.innerHTML = "";
+      tabs.forEach(tab => {
+        const li = document.createElement("li");
+        const span = document.createElement("span");
+        span.textContent = tab.title;
+        if (tab.id === currentTabId) {
+          span.style.fontWeight = "600";
+        }
+        const btn = document.createElement("button");
+        btn.textContent = "選択";
+        btn.onclick = () => {
+          if (window.selectTabFromList) {
+            window.selectTabFromList(tab.id);
+          }
+          closeTabListModal();
+        };
+        li.appendChild(span);
+        li.appendChild(btn);
+        tabListContent.appendChild(li);
+      });
+      tabListModal.style.display = "flex";
+    }
+
+    function closeTabListModal() {
+      tabListModal.style.display = "none";
+    }
+
+    window.closeTabListModal = closeTabListModal;
+
+    // app.js から呼べるように
+    window._openTabListModalFromApp = openTabListModal;
+  </script>
 </body>
 </html>
