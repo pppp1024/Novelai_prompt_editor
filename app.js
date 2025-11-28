@@ -129,7 +129,23 @@ const presetEditorNegEl = document.getElementById("presetEditorNeg");
 
 const wordsPosEl = document.getElementById("wordsPos");
 const wordsNegEl = document.getElementById("wordsNeg");
-const suggestionsEl = document.getElementById("suggestions");
+
+// ★ 各エディタ専用のサジェストコンテナ
+const suggestionsPosEl = document.getElementById("suggestionsPos");
+const suggestionsNegEl = document.getElementById("suggestionsNeg");
+const suggestionsPresetPosEl = document.getElementById("suggestionsPresetPos");
+const suggestionsPresetNegEl = document.getElementById("suggestionsPresetNeg");
+
+const suggestionContainers = {
+  pos: suggestionsPosEl,
+  neg: suggestionsNegEl,
+  presetPos: suggestionsPresetPosEl,
+  presetNeg: suggestionsPresetNegEl
+};
+
+function getSuggestionsContainer(kind) {
+  return suggestionContainers[kind] || null;
+}
 
 const presetCategorySelectEl = document.getElementById("presetCategorySelect");
 const presetCreateBtn = document.getElementById("presetCreateBtn");
@@ -556,40 +572,21 @@ function getAllCandidates() {
     .filter(x => x && x.trim().length > 0);
 }
 
-// --- サジェストを非表示 ---
+// --- サジェストを全て非表示 ---
 function hideSuggestions() {
-  suggestionsEl.innerHTML = "";
-  suggestionsEl.style.display = "none";
-  suggestionsEl.style.position = "";  // 位置指定をリセット
+  Object.values(suggestionContainers).forEach(el => {
+    if (!el) return;
+    el.innerHTML = "";
+    el.style.display = "none";
+  });
   currentSuggestionTarget = null;
 }
 
-function positionSuggestionPopup(editorEl) {
-  if (!editorEl) return;
-
-  // textarea の画面上の位置
-  const rect = editorEl.getBoundingClientRect();
-
-  // ページ全体のスクロール量
-  const scrollY = window.scrollY || document.documentElement.scrollTop;
-  const scrollX = window.scrollX || document.documentElement.scrollLeft;
-
-  const margin = 4; // テキストエリアとの隙間
-
-  // ページ（document）基準で textarea のすぐ下に表示
-  suggestionsEl.style.position = "absolute";
-  suggestionsEl.style.left = (rect.left + scrollX) + "px";
-  suggestionsEl.style.top = (rect.bottom + scrollY + margin) + "px";
-  suggestionsEl.style.zIndex = 10000;
-
-  // 横幅も textarea に揃える（好みで）
-  suggestionsEl.style.width = rect.width + "px";
-}
-
-
 // --- 実際にサジェストを作る処理（どのエディタでも共通） ---
 function showSuggestionsFor(kind, editorEl) {
-  if (!editorEl) {
+  const suggestionsEl = getSuggestionsContainer(kind);
+
+  if (!editorEl || !suggestionsEl) {
     hideSuggestions();
     return;
   }
@@ -637,8 +634,8 @@ function showSuggestionsFor(kind, editorEl) {
 
   currentSuggestionTarget = { kind, editor: editorEl };
 
-  positionSuggestionPopup(editorEl);
-  suggestionsEl.style.display = "block";
+  // editor-wrapper 内で absolute なので、位置指定はCSSに任せて display だけ切り替える
+  suggestionsEl.style.display = "flex";
 }
 
 // --- サジェスト確定：どのエディタでもOK ---
@@ -747,7 +744,14 @@ document.addEventListener("click", (e) => {
   const target = e.target;
 
   // サジェスト自体をクリックしたときは閉じない
-  if (suggestionsEl.contains(target)) return;
+  if (
+    (suggestionsPosEl && suggestionsPosEl.contains(target)) ||
+    (suggestionsNegEl && suggestionsNegEl.contains(target)) ||
+    (suggestionsPresetPosEl && suggestionsPresetPosEl.contains(target)) ||
+    (suggestionsPresetNegEl && suggestionsPresetNegEl.contains(target))
+  ) {
+    return;
+  }
 
   // 4つのエディタをクリックしたときも閉じない
   if (
@@ -764,7 +768,6 @@ document.addEventListener("click", (e) => {
 
 /* ===========================================================
    ここから下は従来処理（Undo / 候補 / プリセットなど）
-   サジェスト関連の古い関数は削除済み
    =========================================================== */
 
 // --- Undo ボタンの動作 ---
@@ -1443,11 +1446,6 @@ function closeWordsEditModal() {
 }
 window.closeWordsEditModal = closeWordsEditModal;
 
-// （中略：wordsEditList 関連の長い実装は元のまま）
-// ここから下の単語編集・ドラッグ・プリセットカテゴリ編集・プリセット適用などは、
-// すべて頂いた最新版と同じコードです。
-// ……長くなるので、このまま続けます。
-
 function renderWordsEditList() {
   const kind = wordsEditKind;
   const text = getTextByKind(kind);
@@ -1905,9 +1903,6 @@ function closePresetCategoryEditModal() {
   presetCategoryEditModal.style.display = "none";
 }
 window.closePresetCategoryEditModal = closePresetCategoryEditModal;
-
-// ここから先のプリセットカテゴリ編集・プリセット一覧・適用ロジックも
-// すべて元の最新版と同じです（長いので省略せずにそのままコピペしています）
 
 function renderPresetCategoryEditList() {
   presetCategoryEditListEl.innerHTML = "";
