@@ -105,6 +105,14 @@ if (savedRaw) {
     if (parsed.candidateCollapsed) {
       appData.candidateCollapsed = parsed.candidateCollapsed;
     }
+
+    // ★ 前回の UI 状態も復元
+    if (parsed.currentTabId) {
+      appData.currentTabId = parsed.currentTabId;
+    }
+    if (parsed.activeView) {
+      appData.activeView = parsed.activeView;
+    }
   } catch (e) {
     console.warn("Failed to parse saved data", e);
   }
@@ -117,7 +125,7 @@ appData.candidateCollapsed = candidateCollapsed;
 let currentTabId = appData.currentTabId || appData.tabs[0].id;
 // "pos" | "neg" | "presetPos" | "presetNeg"
 let activeEditor = "pos";
-let activeView = "main";     // "main" | "preset"
+let activeView = appData.activeView || "main";     // "main" | "preset"
 
 const tabsEl = document.getElementById("tabs");
 const mainView = document.getElementById("mainView");
@@ -344,7 +352,7 @@ function saveAppData() {
   // ★ UI 状態も一緒に保存
   appData.currentTabId = currentTabId;
   appData.activeView = activeView;
-  
+
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
 }
 
@@ -362,6 +370,7 @@ function renderTabs() {
     btn.onclick = () => {
       activeView = "main";
       currentTabId = tab.id;
+      saveAppData();      // ★ タブ切り替え時にも保存
       updateView();
       renderTabs();
     };
