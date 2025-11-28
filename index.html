@@ -372,7 +372,8 @@
     /* ============================
    スマホ向け：
    ・タブバーを下に固定
-   ・ヘッダー全体を横スクロール
+   ・タブ部分だけ横スクロール
+   ・右端の「一覧」ボタンは固定
    ============================ */
 @media (max-width: 768px) {
   /* 下の固定ヘッダーぶんの余白 */
@@ -394,19 +395,32 @@
     box-shadow: 0 -2px 4px rgba(0,0,0,0.08);
     z-index: 1000;
 
-    /* ここからスクロール設定 */
-    display: flex;        /* もともと flex なので念のため */
-    flex-wrap: nowrap;    /* 折り返さない（1行に並べる） */
-    overflow-x: auto;     /* 横スクロール可能にする */
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
   }
 
-  /* ヘッダー内の子要素（タブ・＋・⚙・💾・？）を
-     すべて「スクロールする列」のメンバーにする */
-  header > * {
-    flex: 0 0 auto;       /* 幅を勝手に伸び縮みさせない */
+  /* タブ＆＋＆⚙＆💾＆？ をまとめて横スクロールさせる箱 */
+  .tab-scroll {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 4px;
   }
 
-  /* タブ系ボタンを大きめに（ここは今まで通りでOK） */
+  .tab-scroll > * {
+    flex: 0 0 auto;   /* 1行に並べてスクロールさせる */
+  }
+
+  /* 「一覧」ボタンはスクロール領域の外なので常に右端に固定される */
+  #tabListBtn {
+    flex: 0 0 auto;
+    margin-left: 4px;
+  }
+
+  /* タブ系ボタンを大きめに（ここは元のまま流用） */
   .tab-button,
   .tab-add-button {
     padding: 10px 14px;
@@ -424,13 +438,18 @@
 
   <!-- タブ＋追加ボタン＋タブ編集ボタン＋バックアップ＋ヘルプ -->
   <header>
+    <header>
+  <!-- 横スクロールさせたい部分 -->
+  <div class="tab-scroll">
     <div id="tabs"></div>
     <button id="newTabBtn" class="tab-add-button">＋</button>
     <button id="editTabsBtn" class="tab-add-button" title="タブ編集" style="font-size:13px;">⚙</button>
     <button id="backupBtn" class="tab-add-button" title="バックアップ" style="font-size:12px;">💾</button>
     <button id="helpBtn" class="tab-add-button" title="ヘルプ" style="font-size:12px;">？</button>
-    <!-- ▼ 追加：タブ一覧ボタン -->
-    <button id="tabListBtn" class="tab-add-button" title="タブ一覧" style="font-size:13px;">📄</button>
+  </div>
+
+  <!-- 右側に固定したい「一覧」ボタン -->
+  <button id="tabListBtn" class="tab-add-button" title="タブ一覧" style="font-size:13px;">一覧</button>
   </header>
 
   <!-- メインビュー（通常のポジ/ネガ編集） -->
