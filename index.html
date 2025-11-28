@@ -370,55 +370,14 @@
     }
 
     /* ============================
-       スマホ向けレイアウト調整
-       タブバーを画面下固定にする
-       ============================ */
-    @media (max-width: 768px) {
-      body {
-        /* 下にタブバーが来るので、その分だけ余白を足す */
-        padding-bottom: 72px;
-      }
-
-      header {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        margin: 0;
-        padding: 6px 8px;
-        box-sizing: border-box;
-        background: #f8f8f8;
-        border-top: 1px solid #ddd;
-        z-index: 1000;
-
-        /* タブとボタンを1行にまとめて横スクロール可能にする */
-        flex-wrap: nowrap;
-        align-items: center;
-        gap: 4px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      /* タブ部分は横スクロールしやすいように */
-      #tabs {
-        display: inline-flex;
-        flex-wrap: nowrap;
-        gap: 4px;
-      }
-
-      .tab-button,
-      .tab-add-button {
-        flex: 0 0 auto;
-      }
-    }
-    /* ============================
-   スマホ向け：タブバーを下に固定
-   ＋ タブボタンを大きく
+   スマホ向け：
+   ・タブバーを下に固定
+   ・ヘッダー全体を横スクロール
    ============================ */
 @media (max-width: 768px) {
-  /* 下に固定したタブバーのぶんだけ余白を確保 */
+  /* 下の固定ヘッダーぶんの余白 */
   body {
-    padding-bottom: 80px;  /* 必要なら数値はお好みで調整 */
+    padding-bottom: 80px;
   }
 
   header {
@@ -433,19 +392,21 @@
     background: #fafafa;
     border-top: 1px solid #ccc;
     box-shadow: 0 -2px 4px rgba(0,0,0,0.08);
-
     z-index: 1000;
 
-    /* すでに display:flex なので、そのままボトムナビっぽくなる */
+    /* ここからスクロール設定 */
+    display: flex;        /* もともと flex なので念のため */
+    flex-wrap: nowrap;    /* 折り返さない（1行に並べる） */
+    overflow-x: auto;     /* 横スクロール可能にする */
   }
 
-  /* タブが横に増えたときは横スクロールできるように */
-  header #tabs {
-    flex: 1;
-    overflow-x: auto;
+  /* ヘッダー内の子要素（タブ・＋・⚙・💾・？）を
+     すべて「スクロールする列」のメンバーにする */
+  header > * {
+    flex: 0 0 auto;       /* 幅を勝手に伸び縮みさせない */
   }
 
-  /* タブ系ボタンだけ大きくする */
+  /* タブ系ボタンを大きめに（ここは今まで通りでOK） */
   .tab-button,
   .tab-add-button {
     padding: 10px 14px;
