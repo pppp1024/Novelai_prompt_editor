@@ -21,6 +21,9 @@ let appData = {
   presetDraftPosText: "",
   presetDraftNegText: "",
   candidateCollapsed: {}
+
+  // ★ 各タブごとのコピー履歴（tabId -> { pos:[], neg:[] }）
+  copyHistory: {}
 };
 
 // 旧バージョンからの移行
@@ -115,6 +118,12 @@ if (savedRaw) {
     }
   } catch (e) {
     console.warn("Failed to parse saved data", e);
+  }
+  // ★ コピー履歴
+  if (parsed.copyHistory) {
+    appData.copyHistory = parsed.copyHistory;
+  } else {
+    appData.copyHistory = {};
   }
 }
 
@@ -473,6 +482,9 @@ backupImportBtn.onclick = () => {
     if (parsed.presetDraftNegText === undefined) parsed.presetDraftNegText = "";
     if (!parsed.candidateCollapsed) parsed.candidateCollapsed = {};
 
+    // ★ バックアップ復元時もコピー履歴を確保
+    if (!parsed.copyHistory) parsed.copyHistory = {};
+    
     appData = parsed;
     candidateCollapsed = appData.candidateCollapsed || {};
     appData.candidateCollapsed = candidateCollapsed;
@@ -499,6 +511,63 @@ backupImportBtn.onclick = () => {
     alert("JSONの読み込みに失敗しました。形式が正しいか確認してください。");
   }
 };
+
+// ★ コピー履歴関連ヘルパー ===============================
+
+// タブごとの履歴オブジェクトを必ず用意する
+function ensureTabHistory(tabId) {
+  if (!appData.copyHistory) appData.copyHistory = {};
+  if (!appData.copyHistory[tabId]) {
+    appData.copyHistory[tabId] = { pos: [], neg: [] };
+  }
+  return appData.copyHistory[tabId];
+}
+
+// kind: "pos" | "neg"
+function recordCopy(kind) {
+  const tab = getCurrentTab();
+  if (!tab) return;
+  const text = (kind === "pos" ? tab.textPos : tab.textNeg) || "";
+  const h = ensureTabHistory(tab.id);
+  const arr = (kind === "pos" ? h.pos : h.neg);
+
+  // 直前と同じ内容なら新しい履歴は追加しない
+  if (arr.length === 0 || arr[arr.length - 1].text !== text) {
+    arr.push({
+      time: Date.now(),
+      text
+    });
+    // 履歴が増えすぎないように適当に制限
+    if (arr.length > 50) {
+      arr.shift();
+    }
+    saveAppData();
+  }
+}
+
+// 前回コピーとの差分（現在にあって前回にないトークン）だけをカンマ区切りで返す
+function getDiffText(kind) {
+  const tab = getCurrentTab();
+  if (!tab) return "";
+
+  const h = ensureTabHistory(tab.id);
+  const arr = (kind === "pos" ? h.pos : h.neg);
+
+  const nowText = (kind === "pos" ? tab.textPos : tab.textNeg) || "";
+
+  // 履歴がなければ全体
+  if (!arr || arr.length === 0) {
+    return nowText;
+  }
+
+  const prevText = arr[arr.length - 1].text || "";
+  const nowTokens = getTokensFromText(nowText);
+  const prevTokens = new Set(getTokensFromText(prevText));
+
+  const diffTokens = nowTokens.filter(t => !prevTokens.has(t));
+
+  return diffTokens.join(", ");
+}
 
 function saveAppData() {
   appData.candidateCollapsed = candidateCollapsed;
@@ -1011,22 +1080,169 @@ editorNegEl.addEventListener("focus", () => { activeEditor = "neg"; });
 presetEditorPosEl.addEventListener("focus", () => { activeEditor = "presetPos"; });
 presetEditorNegEl.addEventListener("focus", () => { activeEditor = "presetNeg"; });
 
+// ★ コピー系ボタン（通常コピー／差分コピー／履歴） =======================
+const historyModal = document.getElementById("historyModal");
+const historyContentEl = document.getElementById("historyContent");
+let historyKind = "pos"; // "pos" | "neg"
+
+// 通常コピー
 document.getElementById("copyPosBtn").onclick = async () => {
+  const tab = getCurrentTab();
+  if (!tab) return;
+  const text = tab.textPos || "";
+
   try {
-    await navigator.clipboard.writeText(editorPosEl.value);
-    alert("ポジティブプロンプトをコピーしました");
+    await navigator.clipboard.writeText(text);
+    // 履歴に保存
+    recordCopy("pos");
+    alert("ポジティブをコピーしました");
   } catch {
     alert("コピーに失敗しました");
   }
 };
+
 document.getElementById("copyNegBtn").onclick = async () => {
+  const tab = getCurrentTab();
+  if (!tab) return;
+  const text = tab.textNeg || "";
+
   try {
-    await navigator.clipboard.writeText(editorNegEl.value);
-    alert("ネガティブプロンプトをコピーしました");
+    await navigator.clipboard.writeText(text);
+    // 履歴に保存
+    recordCopy("neg");
+    alert("ネガティブをコピーしました");
   } catch {
     alert("コピーに失敗しました");
   }
 };
+
+// 差分コピー
+document.getElementById("copyPosDiffBtn").onclick = async () => {
+  const tab = getCurrentTab();
+  if (!tab) return;
+
+  const diff = getDiffText("pos");
+  const h = ensureTabHistory(tab.id);
+  const hasHistory = h.pos && h.pos.length > 0;
+
+  if (!hasHistory) {
+    // 履歴がないときは全体コピー
+    try {
+      await navigator.clipboard.writeText(tab.textPos || "");
+      recordCopy("pos");
+      alert("履歴がないため、ポジティブ全体をコピーしました");
+    } catch {
+      alert("コピーに失敗しました");
+    }
+    return;
+  }
+
+  if (!diff || diff.trim().length === 0) {
+    alert("前回のコピーから変更された単語はありません。");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(diff);
+    // ベースラインとして現在の全文を履歴に残す
+    recordCopy("pos");
+    alert("前回から追加・変更された部分だけをコピーしました");
+  } catch {
+    alert("コピーに失敗しました");
+  }
+};
+
+document.getElementById("copyNegDiffBtn").onclick = async () => {
+  const tab = getCurrentTab();
+  if (!tab) return;
+
+  const diff = getDiffText("neg");
+  const h = ensureTabHistory(tab.id);
+  const hasHistory = h.neg && h.neg.length > 0;
+
+  if (!hasHistory) {
+    try {
+      await navigator.clipboard.writeText(tab.textNeg || "");
+      recordCopy("neg");
+      alert("履歴がないため、ネガティブ全体をコピーしました");
+    } catch {
+      alert("コピーに失敗しました");
+    }
+    return;
+  }
+
+  if (!diff || diff.trim().length === 0) {
+    alert("前回のコピーから変更された単語はありません。");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(diff);
+    recordCopy("neg");
+    alert("前回から追加・変更された部分だけをコピーしました");
+  } catch {
+    alert("コピーに失敗しました");
+  }
+};
+
+// 履歴表示
+document.getElementById("posHistoryBtn").onclick = () => {
+  historyKind = "pos";
+  openHistoryModal();
+};
+document.getElementById("negHistoryBtn").onclick = () => {
+  historyKind = "neg";
+  openHistoryModal();
+};
+
+function openHistoryModal() {
+  const tab = getCurrentTab();
+  if (!tab) return;
+
+  const h = ensureTabHistory(tab.id);
+  const arr = historyKind === "pos" ? (h.pos || []) : (h.neg || []);
+  const label = historyKind === "pos" ? "ポジティブ" : "ネガティブ";
+
+  historyContentEl.innerHTML = "";
+
+  const titleP = document.createElement("p");
+  titleP.textContent = `タブ「${tab.title}」の ${label} コピー履歴`;
+  historyContentEl.appendChild(titleP);
+
+  if (!arr || arr.length === 0) {
+    const p = document.createElement("p");
+    p.textContent = "まだコピー履歴がありません。コピーするとここに表示されます。";
+    historyContentEl.appendChild(p);
+  } else {
+    // 新しいものを上にする
+    const reversed = [...arr].sort((a, b) => b.time - a.time);
+
+    reversed.forEach((item, idx) => {
+      const details = document.createElement("details");
+      if (idx === 0) details.open = true;
+
+      const summary = document.createElement("summary");
+      const d = new Date(item.time);
+      summary.textContent = d.toLocaleString("ja-JP");
+      details.appendChild(summary);
+
+      const pre = document.createElement("pre");
+      pre.textContent = item.text || "";
+      pre.style.whiteSpace = "pre-wrap";
+      pre.style.margin = "4px 0 8px";
+      details.appendChild(pre);
+
+      historyContentEl.appendChild(details);
+    });
+  }
+
+  historyModal.style.display = "flex";
+}
+
+function closeHistoryModal() {
+  historyModal.style.display = "none";
+}
+window.closeHistoryModal = closeHistoryModal;
 
 function clearEditor(kind) {
   if (kind === "pos") {
