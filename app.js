@@ -20,7 +20,7 @@ let appData = {
   // プリセット作成用の下書き（ポジ／ネガ）
   presetDraftPosText: "",
   presetDraftNegText: "",
-  candidateCollapsed: {}
+  candidateCollapsed: {},
 
   // ★ 各タブごとのコピー履歴（tabId -> { pos:[], neg:[] }）
   copyHistory: {}
