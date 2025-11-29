@@ -318,11 +318,12 @@
     }
 
     /* 単語編集モーダル用 */
-    .words-edit-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 4px;
+    .words-edit-chips .chip {
+      font-size: 15px;        /* 文字を大きく */
+      padding: 8px 12px;      /* 指で押しやすいサイズに */
+      border-radius: 14px;    /* ふんわり丸く */
+      min-height: 30px;       /* 高さ確保 */
+      line-height: 1.4;
     }
     .words-edit-chips .chip {
       font-size: 12px;
