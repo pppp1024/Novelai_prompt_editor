@@ -116,14 +116,14 @@ if (savedRaw) {
     if (parsed.activeView) {
       appData.activeView = parsed.activeView;
     }
+    // ★ コピー履歴
+   if (parsed.copyHistory) {
+     appData.copyHistory = parsed.copyHistory;
+　  } else {
+　    appData.copyHistory = {};
+　  }
   } catch (e) {
     console.warn("Failed to parse saved data", e);
-  }
-  // ★ コピー履歴
-  if (parsed.copyHistory) {
-    appData.copyHistory = parsed.copyHistory;
-  } else {
-    appData.copyHistory = {};
   }
 }
 
