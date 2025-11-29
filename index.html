@@ -19,7 +19,7 @@
       margin-bottom: 4px;
     }
 
-        .app-header-top {
+    .app-header-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -181,12 +181,12 @@
     }
 
     .suggestions {
-      margin-top: 8px;
-      display: flex;
+      margin-top: 4px;
+      display: none;          /* 普段は非表示 */
       flex-wrap: wrap;
       gap: 4px;
-      /* 位置は JS から制御 */
-    }
+　　　}
+    
     .suggestion-btn {
       padding: 3px 6px;
       border-radius: 6px;
@@ -496,13 +496,15 @@
     </div>
   </header>
 
-  <!-- メインビュー（通常のポジ/ネガ編集） -->
+    <!-- メインビュー（通常のポジ/ネガ編集） -->
   <div id="mainView">
     <div class="section-label">ポジティブプロンプト</div>
     <div class="editor-wrapper">
       <textarea id="editorPos" class="textarea-pos"
         placeholder="ここにポジティブプロンプトを書きます（例: 1girl, solo, dynamic angle, ）"></textarea>
     </div>
+    <!-- ★ ポジ用サジェスト -->
+    <div class="suggestions" id="suggestionsPos"></div>
 
     <div class="toolbar">
       <button id="openCandidatesBtn">候補</button>
@@ -515,24 +517,13 @@
 
     <div class="chips" id="wordsPos" style="display:none;"></div>
 
-    <!-- メインのポジ用 -->
-    <div class="suggestions" id="suggestionsPos"></div>
-
-    <!-- メインのネガ用 -->
-    <div class="suggestions" id="suggestionsNeg"></div>
-
-    <!-- プリセットポジ用 -->
-    <div class="suggestions" id="suggestionsPresetPos"></div>
-
-    <!-- プリセットネガ用 -->
-    <div class="suggestions" id="suggestionsPresetNeg"></div>
-  
-
     <div class="section-label">ネガティブプロンプト</div>
     <div class="editor-wrapper">
       <textarea id="editorNeg" class="textarea-neg"
         placeholder="ここにネガティブプロンプトを書きます（例: lowres, blurry, watermark, ）"></textarea>
     </div>
+    <!-- ★ ネガ用サジェスト -->
+    <div class="suggestions" id="suggestionsNeg"></div>
 
     <div class="subtoolbar">
       <button id="openCandidatesNegBtn">候補</button>
@@ -546,13 +537,16 @@
     <div class="chips" id="wordsNeg" style="display:none;"></div>
   </div>
 
-  <!-- プリセット作成用ビュー（ポジ＋ネガ 両方） -->
+    <!-- プリセット作成用ビュー（ポジ＋ネガ 両方） -->
   <div id="presetView" style="display:none;">
     <div class="section-label">プリセット用ポジティブプロンプト</div>
     <div class="editor-wrapper">
       <textarea id="presetEditorPos" class="textarea-pos"
         placeholder="ここにプリセットのポジティブプロンプトを書きます（例: masterpiece, best quality, ultra-detailed, ）"></textarea>
     </div>
+    <!-- ★ プリセット・ポジ用サジェスト -->
+    <div class="suggestions" id="suggestionsPresetPos"></div>
+
     <!-- ポジティブ用ツールバー -->
     <div class="toolbar">
       <button id="presetOpenCandidatesPosBtn">候補</button>
@@ -566,6 +560,9 @@
       <textarea id="presetEditorNeg" class="textarea-neg"
         placeholder="ここにプリセットのネガティブプロンプトを書きます（例: lowres, blurry, worst quality, ）"></textarea>
     </div>
+    <!-- ★ プリセット・ネガ用サジェスト -->
+    <div class="suggestions" id="suggestionsPresetNeg"></div>
+
     <!-- ネガティブ用ツールバー -->
     <div class="toolbar">
       <button id="presetOpenCandidatesNegBtn">候補</button>
@@ -574,16 +571,8 @@
       <button id="presetNegClearBtn" title="すべて削除">🗑</button>
     </div>
 
-    <!-- プリセット登録用ツールバー -->
-    <div class="toolbar">
-      <select id="presetCategorySelect" style="min-width:120px;"></select>
-      <span class="small-ni">に</span>
-      <button id="presetCreateBtn">追加</button>
-    </div>
-    <!-- 2段目：カテゴリ編集 -->
-    <div class="toolbar">
-      <button id="openPresetCategoryEditBtn">カテゴリ編集</button>
-    </div>
+    <!-- 以下プリセット登録用ツールバーなどは今のままでOK -->
+    ...
   </div>
 
   <!-- 候補ページ（選択＋編集） -->
