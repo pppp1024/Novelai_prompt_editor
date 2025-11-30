@@ -1825,18 +1825,11 @@ function renderWordsEditList() {
   hint.textContent = "ヒント：チップを長押ししてドラッグすると並び替えができます。複数選択モードをオンにすると、タップで複数の単語を選べます。";
   wordsEditListEl.appendChild(hint);
 
-  if (tokens.length === 0) {
-    const p = document.createElement("p");
-    p.className = "words-edit-empty";
-    p.textContent = "まだ単語がありません。テキストエリアに「,」区切りで単語を入力してください。";
-    wordsEditListEl.appendChild(p);
-    return;
-  }
-
+  // ▼ ここで必ずツールバー（モード切り替えスイッチ）を出す
   const toolbar = document.createElement("div");
   toolbar.className = "words-edit-toolbar modal-subtoolbar";
 
-  // ▼ モード選択（並び替え / 強調・弱体）
+  // モード： [並び替え ▼]
   const modeLabel = document.createElement("span");
   modeLabel.textContent = "モード：";
 
@@ -1854,9 +1847,10 @@ function renderWordsEditList() {
   modeSelect.onchange = (e) => {
     wordsEditMode = e.target.value;
     saveAppData();
-    renderWordsEditList();   // 表示を切り替え
+    renderWordsEditList();   // モードを変えたら一覧を描き直す
   };
 
+  // 複数選択モード
   const multiLabel = document.createElement("label");
   const multiChk = document.createElement("input");
   multiChk.type = "checkbox";
@@ -1869,6 +1863,7 @@ function renderWordsEditList() {
   multiLabel.appendChild(multiChk);
   multiLabel.appendChild(document.createTextNode(" 複数選択モード"));
 
+  // 選択単語への一括操作（強調/弱体/削除）
   const plusBtnSel = document.createElement("button");
   plusBtnSel.textContent = "選択を＋0.1";
   plusBtnSel.onclick = () => applyWeightToSelected(+0.1);
@@ -1881,7 +1876,7 @@ function renderWordsEditList() {
   delBtnSel.textContent = "選択削除";
   delBtnSel.onclick = () => deleteSelectedWords();
 
-  // 並び替えモードのときは、強調/弱体ボタンを隠す
+  // 並び替えモードのときは強調/弱体ボタンを隠す
   if (wordsEditMode === "reorder") {
     plusBtnSel.style.display = "none";
     minusBtnSel.style.display = "none";
@@ -1894,6 +1889,15 @@ function renderWordsEditList() {
   toolbar.appendChild(minusBtnSel);
   toolbar.appendChild(delBtnSel);
   wordsEditListEl.appendChild(toolbar);
+
+  // ▼ ここから下がチップリスト
+  if (tokens.length === 0) {
+    const p = document.createElement("p");
+    p.className = "words-edit-empty";
+    p.textContent = "まだ単語がありません。テキストエリアに「,」区切りで単語を入力してください。";
+    wordsEditListEl.appendChild(p);
+    return;
+  }
 
   const chipsContainer = document.createElement("div");
   chipsContainer.className = "words-edit-chips";
@@ -2250,7 +2254,7 @@ function renderWordsEditList() {
       renderWordsEditList();
     });
 
-        chip.appendChild(label);
+    chip.appendChild(label);
 
     // 強調/弱体モードのときだけ、重み編集 UI を表示
     if (wordsEditMode === "weight") {
@@ -2265,6 +2269,7 @@ function renderWordsEditList() {
 
   wordsEditListEl.appendChild(chipsContainer);
 }
+
 
 // --- プリセットカテゴリ選択＆ボタンラベル ---
 function updatePresetCreateButtonLabel() {
