@@ -143,7 +143,8 @@ window.CANDIDATE_GROUPS = [
       "big eyes",
       "narrow eyes",
       "sparkling eyes",
-      "glowing eyes"
+      "glowing eyes",
+      "rolling eyes"
     ]
   },
   {
