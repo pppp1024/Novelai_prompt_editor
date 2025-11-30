@@ -2263,7 +2263,10 @@ function renderWordsEditList() {
       chip.appendChild(weightInput);
     }
 
-    chip.appendChild(closeBtn);
+    // ★ 並び替えモードのときだけ「×」削除ボタンを表示
+    if (wordsEditMode === "reorder") {
+      chip.appendChild(closeBtn);
+    }
     chipsContainer.appendChild(chip);
   });
 
