@@ -141,7 +141,7 @@ if (savedRaw) {
       ];
     }
 
-        if (parsed.candidateGroups) {
+    if (parsed.candidateGroups) {
       // candidate.js のデフォルトと localStorage の内容をマージ
       const baseCandidateGroups = (window.CANDIDATE_GROUPS || []);
       appData.candidateGroups = mergeCandidateGroups(baseCandidateGroups, parsed.candidateGroups);
@@ -173,7 +173,12 @@ if (savedRaw) {
      appData.copyHistory = parsed.copyHistory;
 　  } else {
 　    appData.copyHistory = {};
-　  }
+   }
+    // 単語編集モードの復元
+    if (parsed.wordsEditMode) {
+      appData.wordsEditMode = parsed.wordsEditMode;
+      wordsEditMode = parsed.wordsEditMode;
+    }
   } catch (e) {
     console.warn("Failed to parse saved data", e);
   }
@@ -292,6 +297,12 @@ let wordsEditKind = "pos";
 let dragInfoWordEdit = null;
 let wordsMultiSelectMode = false;
 let selectedWordIndices = new Set();
+
+// "reorder" | "weight" を保存・復元するモード
+let wordsEditMode = appData.wordsEditMode || "reorder";
+if (!appData.wordsEditMode) {
+  appData.wordsEditMode = wordsEditMode;
+}
 
 /* ==========================================
    ★ タブ一覧モーダル関連
@@ -627,6 +638,9 @@ function saveAppData() {
   // ★ UI 状態も一緒に保存
   appData.currentTabId = currentTabId;
   appData.activeView = activeView;
+
+  // ★ 単語編集モードも保存
+  appData.wordsEditMode = wordsEditMode;
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
 }
@@ -1822,6 +1836,27 @@ function renderWordsEditList() {
   const toolbar = document.createElement("div");
   toolbar.className = "words-edit-toolbar modal-subtoolbar";
 
+  // ▼ モード選択（並び替え / 強調・弱体）
+  const modeLabel = document.createElement("span");
+  modeLabel.textContent = "モード：";
+
+  const modeSelect = document.createElement("select");
+  const optReorder = document.createElement("option");
+  optReorder.value = "reorder";
+  optReorder.textContent = "並び替え";
+  const optWeight = document.createElement("option");
+  optWeight.value = "weight";
+  optWeight.textContent = "強調/弱体";
+
+  modeSelect.appendChild(optReorder);
+  modeSelect.appendChild(optWeight);
+  modeSelect.value = wordsEditMode || "reorder";
+  modeSelect.onchange = (e) => {
+    wordsEditMode = e.target.value;
+    saveAppData();
+    renderWordsEditList();   // 表示を切り替え
+  };
+
   const multiLabel = document.createElement("label");
   const multiChk = document.createElement("input");
   multiChk.type = "checkbox";
@@ -1846,6 +1881,14 @@ function renderWordsEditList() {
   delBtnSel.textContent = "選択削除";
   delBtnSel.onclick = () => deleteSelectedWords();
 
+  // 並び替えモードのときは、強調/弱体ボタンを隠す
+  if (wordsEditMode === "reorder") {
+    plusBtnSel.style.display = "none";
+    minusBtnSel.style.display = "none";
+  }
+
+  toolbar.appendChild(modeLabel);
+  toolbar.appendChild(modeSelect);
   toolbar.appendChild(multiLabel);
   toolbar.appendChild(plusBtnSel);
   toolbar.appendChild(minusBtnSel);
@@ -2207,10 +2250,15 @@ function renderWordsEditList() {
       renderWordsEditList();
     });
 
-    chip.appendChild(label);
-    chip.appendChild(plusBtn);
-    chip.appendChild(minusBtn);
-    chip.appendChild(weightInput);
+        chip.appendChild(label);
+
+    // 強調/弱体モードのときだけ、重み編集 UI を表示
+    if (wordsEditMode === "weight") {
+      chip.appendChild(plusBtn);
+      chip.appendChild(minusBtn);
+      chip.appendChild(weightInput);
+    }
+
     chip.appendChild(closeBtn);
     chipsContainer.appendChild(chip);
   });
