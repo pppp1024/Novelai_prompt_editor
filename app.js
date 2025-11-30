@@ -26,6 +26,56 @@ let appData = {
   copyHistory: {}
 };
 
+// candidate.js のデフォルト候補と localStorage の候補をマージする
+function mergeCandidateGroups(baseGroups, savedGroups) {
+  if (!Array.isArray(baseGroups)) baseGroups = [];
+  if (!Array.isArray(savedGroups)) return baseGroups;
+
+  const result = [];
+
+  // id をキーにしたマップ
+  const savedById = new Map(savedGroups.map(g => [g.id, g.id ? g : { ...g }]));
+  const usedIds = new Set();
+
+  // 1) まず saved（ユーザー編集済み）側をベースにマージ
+  savedGroups.forEach(saved => {
+    const base = baseGroups.find(bg => bg.id === saved.id);
+    if (!base) {
+      // ユーザーが作った新規カテゴリなど → そのまま使う
+      result.push(saved);
+    } else {
+      // 同じ id のカテゴリは、名前はユーザー側優先、items は両方を union
+      const merged = {
+        id: saved.id,
+        name: saved.name || base.name,
+        items: Array.isArray(saved.items) ? [...saved.items] : []
+      };
+      const existingSet = new Set(merged.items);
+
+      if (Array.isArray(base.items)) {
+        base.items.forEach(item => {
+          // ユーザー側にまだ無い item だけ追加 → candidate.js に追加された新語を取り込む
+          if (item && !existingSet.has(item)) {
+            merged.items.push(item);
+          }
+        });
+      }
+
+      result.push(merged);
+    }
+    usedIds.add(saved.id);
+  });
+
+  // 2) saved に存在しない id のカテゴリは、candidate.js 側の新規カテゴリとして追加
+  baseGroups.forEach(base => {
+    if (!usedIds.has(base.id)) {
+      result.push(base);
+    }
+  });
+
+  return result;
+}
+
 // 旧バージョンからの移行
 const savedRaw =
   localStorage.getItem(STORAGE_KEY) ||
@@ -91,8 +141,10 @@ if (savedRaw) {
       ];
     }
 
-    if (parsed.candidateGroups) {
-      appData.candidateGroups = parsed.candidateGroups;
+        if (parsed.candidateGroups) {
+      // candidate.js のデフォルトと localStorage の内容をマージ
+      const baseCandidateGroups = (window.CANDIDATE_GROUPS || []);
+      appData.candidateGroups = mergeCandidateGroups(baseCandidateGroups, parsed.candidateGroups);
     }
 
     // 旧フィールドから下書きを移行
