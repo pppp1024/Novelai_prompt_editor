@@ -180,42 +180,43 @@
       padding: 0 2px;
       cursor: pointer;
     }
-    /* ▼ チップ自体を大きく */
+
+    /* ▼ チップ（中サイズ） */
 .words-edit-chips .chip {
-  font-size: 8px;
-  padding: 4px 8px;
-  border-radius: 8px;
-  min-height: 18px;
-  line-height: 1.4;
+  font-size: 13px;      /* 読みやすさと省スペースのバランス */
+  padding: 6px 10px;    /* 小さすぎず、大きすぎず */
+  border-radius: 12px;
+  min-height: 28px;
+  line-height: 1.35;
 }
 
-/* ▼ 削除（×）ボタンを大きく */
+/* ▼ 削除（×）ボタン */
 .words-edit-chips .chip-close {
-  font-size: 16px;        /* 大きい × */
-  padding: 0 6px;         /* 押しやすく */
-  margin-left: 6px;
+  font-size: 14px;
+  padding: 0 5px;
+  margin-left: 5px;
 }
 
-/* ▼ 重み編集の（＋／−）ボタン */
+/* ▼ 重み編集（＋／−）ボタンの中サイズ */
 .chip-weight-btn {
-  font-size: 14px;        /* 元は10px → 14pxへ */
-  padding: 2px 8px;       /* 押しやすい面積 */
-  border-radius: 10px;
-  margin-left: 6px;
-}
-
-/* ▼ 重み編集の数値入力欄 */
-.chip-weight-input {
-  font-size: 14px;        /* 元10px → 14pxへ */
-  padding: 4px 6px;       /* 指で触りやすい */
-  width: 4em;             /* 少し幅広く */
+  font-size: 12px;      /* 大きすぎない */
+  padding: 2px 6px;
   border-radius: 8px;
-  margin-left: 6px;
+  margin-left: 5px;
 }
 
-/* ▼ チップ同士の間隔を広げると操作性UP */
+/* ▼ 重み編集の数値入力欄の中サイズ */
+.chip-weight-input {
+  font-size: 12px;
+  padding: 3px 5px;
+  width: 3.5em;
+  border-radius: 6px;
+  margin-left: 5px;
+}
+
+/* ▼ チップ同士の間隔も控えめに */
 .words-edit-chips {
-  gap: 8px;
+  gap: 6px;
 }
 
     .suggestions {
