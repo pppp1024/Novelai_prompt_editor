@@ -36,6 +36,8 @@ window.CANDIDATE_GROUPS = [
     id: "q2",
     name: "人物・キャラクター",
     items: [
+      "girl",
+      "boy",
       "1girl",
       "1boy",
       "2girls",
@@ -86,6 +88,7 @@ window.CANDIDATE_GROUPS = [
       "sharp eyes",
       "shining eyes",
       "glowing eyes"
+      "blush"
     ]
   },
   {
@@ -216,7 +219,10 @@ window.CANDIDATE_GROUPS = [
       "looking back",
       "holding weapon",
       "reading a book",
-      "reaching out"
+      "reaching out",
+      "lying",
+      "on back",
+      "on stomach"
     ]
   },
   {
