@@ -2081,20 +2081,20 @@ function renderWordsEditList() {
     }, { passive: false });
 
     chip.addEventListener("touchend", (e) => {
-      // ★ 強調/弱体モードのときは並び替え禁止（タップ＝選択だけ）
-      if (wordsEditMode === "weight") {
-        if (wordsMultiSelectMode) {
-          if (selectedWordIndices.has(idx)) {
-            selectedWordIndices.delete(idx);
-          } else {
-            selectedWordIndices.add(idx);
-          }
-          renderWordsEditList();
-        }
-        // 並び替えロジックには入らない
-        dragInfoWordEdit = null;
-        return;
+      // ★ 強調/弱体モードのときは並び替え禁止（クリック＝選択だけ）
+  if (wordsEditMode === "weight") {
+    if (wordsMultiSelectMode) {
+      if (selectedWordIndices.has(idx)) {
+　　　        selectedWordIndices.delete(idx);
+      } else {
+             selectedWordIndices.add(idx);
       }
+      renderWordsEditList();
+　      }
+    dragInfoWordEdit = null;
+    return;
+  }
+
       
       if (!dragInfoWordEdit) return;
       const info = dragInfoWordEdit;
@@ -2198,18 +2198,25 @@ function renderWordsEditList() {
 
     chip.addEventListener("mouseup", (e) => {
       // ★ 強調/弱体モードのときは並び替え禁止（クリック＝選択だけ）
-      if (wordsEditMode === "weight") {
-        if (wordsMultiSelectMode) {
-          if (selectedWordIndices.has(idx)) {
-　　　        selectedWordIndices.delete(idx);
-          } else {
-             selectedWordIndices.add(idx);
-          }
-          renderWordsEditList();
-　      }
-        dragInfoWordEdit = null;
-        return;
-      } 
+  if (wordsEditMode === "weight") {
+    // ドラッグ中だった場合の見た目を元に戻す
+    if (dragInfoWordEdit && dragInfoWordEdit.chipEl) {
+      dragInfoWordEdit.chipEl.classList.remove("dragging");
+    }
+    dragInfoWordEdit = null;
+
+    if (wordsMultiSelectMode) {
+      if (selectedWordIndices.has(idx)) {
+        selectedWordIndices.delete(idx);
+      } else {
+        selectedWordIndices.add(idx);
+      }
+      renderWordsEditList();
+    }
+    return; // 並び替えロジックには入らない
+  }
+
+      
       if (!dragInfoWordEdit) return;
       const info = dragInfoWordEdit;
       dragInfoWordEdit = null;
