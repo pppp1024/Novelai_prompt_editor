@@ -2081,6 +2081,21 @@ function renderWordsEditList() {
     }, { passive: false });
 
     chip.addEventListener("touchend", (e) => {
+      // ★ 強調/弱体モードのときは並び替え禁止（タップ＝選択だけ）
+      if (wordsEditMode === "weight") {
+        if (wordsMultiSelectMode) {
+          if (selectedWordIndices.has(idx)) {
+            selectedWordIndices.delete(idx);
+          } else {
+            selectedWordIndices.add(idx);
+          }
+          renderWordsEditList();
+        }
+        // 並び替えロジックには入らない
+        dragInfoWordEdit = null;
+        return;
+      }
+      
       if (!dragInfoWordEdit) return;
       const info = dragInfoWordEdit;
       dragInfoWordEdit = null;
@@ -2182,6 +2197,19 @@ function renderWordsEditList() {
     });
 
     chip.addEventListener("mouseup", (e) => {
+      // ★ 強調/弱体モードのときは並び替え禁止（クリック＝選択だけ）
+      if (wordsEditMode === "weight") {
+        if (wordsMultiSelectMode) {
+          if (selectedWordIndices.has(idx)) {
+　　　        selectedWordIndices.delete(idx);
+          } else {
+             selectedWordIndices.add(idx);
+          }
+          renderWordsEditList();
+　      }
+        dragInfoWordEdit = null;
+        return;
+      } 
       if (!dragInfoWordEdit) return;
       const info = dragInfoWordEdit;
       dragInfoWordEdit = null;
