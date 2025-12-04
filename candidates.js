@@ -87,7 +87,7 @@ window.CANDIDATE_GROUPS = [
       "expressive eyes",
       "sharp eyes",
       "shining eyes",
-      "glowing eyes"
+      "glowing eyes",
       "blush"
     ]
   },
