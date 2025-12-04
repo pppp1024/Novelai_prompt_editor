@@ -27,49 +27,61 @@ let appData = {
 };
 
 // candidate.js のデフォルト候補と localStorage の候補をマージする
+//   - candidate.js (baseGroups) を「正」として使う
+//   - ユーザーが追加した単語やカテゴリは savedGroups から足す
 function mergeCandidateGroups(baseGroups, savedGroups) {
   if (!Array.isArray(baseGroups)) baseGroups = [];
-  if (!Array.isArray(savedGroups)) return baseGroups;
+  if (!Array.isArray(savedGroups)) savedGroups = [];
 
   const result = [];
 
-  // id をキーにしたマップ
-  const savedById = new Map(savedGroups.map(g => [g.id, g.id ? g : { ...g }]));
+  // id -> savedGroup
+  const savedById = new Map(savedGroups.map(g => [g.id, g]));
   const usedIds = new Set();
 
-  // 1) まず saved（ユーザー編集済み）側をベースにマージ
-  savedGroups.forEach(saved => {
-    const base = baseGroups.find(bg => bg.id === saved.id);
-    if (!base) {
-      // ユーザーが作った新規カテゴリなど → そのまま使う
-      result.push(saved);
-    } else {
-      // 同じ id のカテゴリは、名前はユーザー側優先、items は両方を union
-      const merged = {
-        id: saved.id,
-        name: saved.name || base.name,
-        items: Array.isArray(saved.items) ? [...saved.items] : []
-      };
-      const existingSet = new Set(merged.items);
+  // 1) まず candidate.js 側のカテゴリをベースにマージ
+  baseGroups.forEach(base => {
+    const saved = savedById.get(base.id);
 
-      if (Array.isArray(base.items)) {
-        base.items.forEach(item => {
-          // ユーザー側にまだ無い item だけ追加 → candidate.js に追加された新語を取り込む
-          if (item && !existingSet.has(item)) {
-            merged.items.push(item);
-          }
-        });
-      }
-
-      result.push(merged);
+    if (!saved) {
+      // ユーザー側に同じ id のカテゴリがない → candidate.js そのまま
+      result.push({
+        id: base.id,
+        name: base.name,
+        items: Array.isArray(base.items) ? [...base.items] : []
+      });
+      usedIds.add(base.id);
+      return;
     }
-    usedIds.add(saved.id);
+
+    // 同じ id のカテゴリがある場合
+    const baseItems = Array.isArray(base.items) ? [...base.items] : [];
+    const mergedItems = [...baseItems];
+    const itemSet = new Set(baseItems);
+
+    // saved 側の items から「candidate.js に無いものだけ」追加
+    if (Array.isArray(saved.items)) {
+      saved.items.forEach(item => {
+        if (item && !itemSet.has(item)) {
+          mergedItems.push(item);
+        }
+      });
+    }
+
+    result.push({
+      id: base.id,
+      // グループ名はユーザーが変えていればそちらを優先
+      name: saved.name || base.name,
+      items: mergedItems
+    });
+
+    usedIds.add(base.id);
   });
 
-  // 2) saved に存在しない id のカテゴリは、candidate.js 側の新規カテゴリとして追加
-  baseGroups.forEach(base => {
-    if (!usedIds.has(base.id)) {
-      result.push(base);
+  // 2) candidate.js に存在しない（完全にユーザーオリジナルの）カテゴリをそのまま追加
+  savedGroups.forEach(saved => {
+    if (!usedIds.has(saved.id)) {
+      result.push(saved);
     }
   });
 
