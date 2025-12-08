@@ -1834,36 +1834,44 @@ function renderWordsEditList() {
 
   const hint = document.createElement("p");
   hint.className = "words-edit-hint";
-  hint.textContent = "ヒント：チップを長押ししてドラッグすると並び替えができます。複数選択モードをオンにすると、タップで複数の単語を選べます。";
+  hint.textContent = "ヒント：チップを長押ししてドラッグすると並び替えができます（並び替えモードのみ）。複数選択モードをオンにすると、タップで複数の単語を選べます。";
   wordsEditListEl.appendChild(hint);
 
-  // ▼ ここで必ずツールバー（モード切り替えスイッチ）を出す
+  // ▼ ツールバー（モード切り替えスイッチ＋複数選択＋一括操作）
   const toolbar = document.createElement("div");
   toolbar.className = "words-edit-toolbar modal-subtoolbar";
 
-  // モード： [並び替え ▼]
+  // モード： [スイッチ]
   const modeLabel = document.createElement("span");
   modeLabel.textContent = "モード：";
 
-  const modeSelect = document.createElement("select");
-  const optReorder = document.createElement("option");
-  optReorder.value = "reorder";
-  optReorder.textContent = "並び替え";
-  const optWeight = document.createElement("option");
-  optWeight.value = "weight";
-  optWeight.textContent = "強調/弱体";
+  const modeText = document.createElement("span");
+  modeText.style.marginRight = "8px";
+  modeText.textContent = (wordsEditMode === "reorder") ? "並び替え" : "強調/弱体";
 
-  modeSelect.appendChild(optReorder);
-  modeSelect.appendChild(optWeight);
-  modeSelect.value = wordsEditMode || "reorder";
-  modeSelect.onchange = (e) => {
-    wordsEditMode = e.target.value;
+  const modeToggleLabel = document.createElement("label");
+  modeToggleLabel.style.display = "inline-flex";
+  modeToggleLabel.style.alignItems = "center";
+  modeToggleLabel.style.gap = "4px";
+
+  const modeToggle = document.createElement("input");
+  modeToggle.type = "checkbox";
+  modeToggle.checked = (wordsEditMode === "weight");
+  modeToggle.onchange = (e) => {
+    wordsEditMode = e.target.checked ? "weight" : "reorder";
     saveAppData();
-    renderWordsEditList();   // モードを変えたら一覧を描き直す
+    renderWordsEditList();
   };
+
+  const modeToggleText = document.createElement("span");
+  modeToggleText.textContent = "強調/弱体モード";
+
+  modeToggleLabel.appendChild(modeToggle);
+  modeToggleLabel.appendChild(modeToggleText);
 
   // 複数選択モード
   const multiLabel = document.createElement("label");
+  multiLabel.style.marginLeft = "8px";
   const multiChk = document.createElement("input");
   multiChk.type = "checkbox";
   multiChk.checked = wordsMultiSelectMode;
@@ -1895,7 +1903,8 @@ function renderWordsEditList() {
   }
 
   toolbar.appendChild(modeLabel);
-  toolbar.appendChild(modeSelect);
+  toolbar.appendChild(modeText);
+  toolbar.appendChild(modeToggleLabel);
   toolbar.appendChild(multiLabel);
   toolbar.appendChild(plusBtnSel);
   toolbar.appendChild(minusBtnSel);
@@ -2085,34 +2094,40 @@ function renderWordsEditList() {
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (!dragInfoWordEdit.dragging && dist > 5) {
         dragInfoWordEdit.dragging = true;
-        dragInfoWordEdit.chipEl.classList.add("dragging");
+        // 強調/弱体モードのときは色を変えない（draggingクラスを付けない）
+        if (wordsEditMode !== "weight") {
+          dragInfoWordEdit.chipEl.classList.add("dragging");
+        }
       }
-      if (dragInfoWordEdit.dragging) {
+      if (dragInfoWordEdit.dragging && wordsEditMode !== "weight") {
         e.preventDefault();
       }
     }, { passive: false });
 
     chip.addEventListener("touchend", (e) => {
-      // ★ 強調/弱体モードのときは並び替え禁止（クリック＝選択だけ）
-  if (wordsEditMode === "weight") {
-    if (wordsMultiSelectMode) {
-      if (selectedWordIndices.has(idx)) {
-　　　        selectedWordIndices.delete(idx);
-      } else {
-             selectedWordIndices.add(idx);
-      }
-      renderWordsEditList();
-　      }
-    dragInfoWordEdit = null;
-    return;
-  }
-
-      
-      if (!dragInfoWordEdit) return;
       const info = dragInfoWordEdit;
       dragInfoWordEdit = null;
+      if (!info) return;
+
       info.chipEl.classList.remove("dragging");
 
+      // ★ 強調/弱体モード：ドラッグ中（スクロール）なら何もしない。タップのみ選択切り替え
+      if (wordsEditMode === "weight") {
+        if (info.dragging) {
+          return; // スクロール扱い
+        }
+        if (wordsMultiSelectMode) {
+          if (selectedWordIndices.has(info.index)) {
+            selectedWordIndices.delete(info.index);
+          } else {
+            selectedWordIndices.add(info.index);
+          }
+          renderWordsEditList();
+        }
+        return;
+      }
+
+      // 並び替えモード
       const currentIdx = info.index;
 
       if (!info.dragging) {
@@ -2201,38 +2216,37 @@ function renderWordsEditList() {
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (!dragInfoWordEdit.dragging && dist > 5) {
         dragInfoWordEdit.dragging = true;
-        dragInfoWordEdit.chipEl.classList.add("dragging");
+        if (wordsEditMode !== "weight") {
+          dragInfoWordEdit.chipEl.classList.add("dragging");
+        }
       }
-      if (dragInfoWordEdit.dragging) {
+      if (dragInfoWordEdit.dragging && wordsEditMode !== "weight") {
         e.preventDefault();
       }
     });
 
     chip.addEventListener("mouseup", (e) => {
-      // ★ 強調/弱体モードのときは並び替え禁止（クリック＝選択だけ）
-  if (wordsEditMode === "weight") {
-    // ドラッグ中だった場合の見た目を元に戻す
-    if (dragInfoWordEdit && dragInfoWordEdit.chipEl) {
-      dragInfoWordEdit.chipEl.classList.remove("dragging");
-    }
-    dragInfoWordEdit = null;
-
-    if (wordsMultiSelectMode) {
-      if (selectedWordIndices.has(idx)) {
-        selectedWordIndices.delete(idx);
-      } else {
-        selectedWordIndices.add(idx);
-      }
-      renderWordsEditList();
-    }
-    return; // 並び替えロジックには入らない
-  }
-
-      
-      if (!dragInfoWordEdit) return;
       const info = dragInfoWordEdit;
       dragInfoWordEdit = null;
+      if (!info) return;
+
       info.chipEl.classList.remove("dragging");
+
+      // ★ 強調/弱体モード：ドラッグ中なら何もしない。クリックのみ選択切り替え
+      if (wordsEditMode === "weight") {
+        if (info.dragging) {
+          return;
+        }
+        if (wordsMultiSelectMode) {
+          if (selectedWordIndices.has(info.index)) {
+            selectedWordIndices.delete(info.index);
+          } else {
+            selectedWordIndices.add(info.index);
+          }
+          renderWordsEditList();
+        }
+        return;
+      }
 
       const currentIdx = info.index;
 
@@ -2310,15 +2324,17 @@ function renderWordsEditList() {
       chip.appendChild(weightInput);
     }
 
-    // ★ 並び替えモードのときだけ「×」削除ボタンを表示
+    // 並び替えモードのときだけ「×」削除ボタンを表示
     if (wordsEditMode === "reorder") {
       chip.appendChild(closeBtn);
     }
+
     chipsContainer.appendChild(chip);
   });
 
   wordsEditListEl.appendChild(chipsContainer);
 }
+
 
 
 // --- プリセットカテゴリ選択＆ボタンラベル ---
