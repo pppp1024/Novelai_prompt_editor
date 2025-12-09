@@ -1929,153 +1929,181 @@ function renderWordsEditList() {
   chipsContainer.className = "words-edit-chips";
 
   tokens.forEach((tok, idx) => {
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    chip.dataset.index = idx;
-    if (wordsMultiSelectMode && selectedWordIndices.has(idx)) {
-      chip.classList.add("selected");
+    tokens.forEach((tok, idx) => {
+  const chip = document.createElement("span");
+  chip.className = "chip";
+  chip.dataset.index = idx;
+  if (wordsMultiSelectMode && selectedWordIndices.has(idx)) {
+    chip.classList.add("selected");
+  }
+
+  const parsed = parseWeightToken(tok);
+
+  // ▼ ラベルは「元の単語」だけ表示
+  const label = document.createElement("span");
+  label.className = "chip-label";
+  label.textContent = parsed.base;
+
+  // ▼ 重み表示用の小さいバッジ（w:1.1 など）
+  const weightBadge = document.createElement("span");
+  weightBadge.className = "chip-weight-badge";
+  weightBadge.textContent =
+    parsed.weight != null ? parsed.weight.toFixed(1) : "-";
+
+  const plusBtn = document.createElement("button");
+  plusBtn.className = "chip-weight-btn";
+  plusBtn.textContent = "+";
+  plusBtn.title = "強調（+0.1）";
+
+  const minusBtn = document.createElement("button");
+  minusBtn.className = "chip-weight-btn";
+  minusBtn.textContent = "−";
+  minusBtn.title = "弱体（-0.1）";
+
+  const weightInput = document.createElement("input");
+  weightInput.className = "chip-weight-input";
+  weightInput.type = "number";
+  weightInput.step = "0.1";
+  weightInput.min = "0.1";
+  weightInput.value = parsed.weight != null ? parsed.weight.toFixed(1) : "";
+  weightInput.placeholder = "w";
+
+  function changeWeightForThis(delta) {
+    // ★ まず Undo を積む
+    saveUndoBeforeChange(kind);
+
+    const currentText = getTextByKind(kind);
+    const tks = getTokensFromText(currentText);
+    if (idx < 0 || idx >= tks.length) return;
+
+    const parsedNow = parseWeightToken(tks[idx]);
+    let w = parsedNow.weight;
+    if (w == null) {
+      w = delta > 0 ? 1.1 : 0.9;
+    } else {
+      w = w + delta;
     }
+    if (w < 0.1) w = 0.1;
 
-    const parsed = parseWeightToken(tok);
+    tks[idx] = buildWeightedToken(parsedNow.base, w);
+    const keepCommaNow = hasTrailingComma(currentText);
+    setTextFromTokens(kind, tks, keepCommaNow);
 
-    const label = document.createElement("span");
-    label.className = "chip-label";
-    label.textContent = tok;
-
-    const plusBtn = document.createElement("button");
-    plusBtn.className = "chip-weight-btn";
-    plusBtn.textContent = "+";
-    plusBtn.title = "強調（+0.1）";
-
-    const minusBtn = document.createElement("button");
-    minusBtn.className = "chip-weight-btn";
-    minusBtn.textContent = "−";
-    minusBtn.title = "弱体（-0.1）";
-
-    const weightInput = document.createElement("input");
-    weightInput.className = "chip-weight-input";
-    weightInput.type = "number";
-    weightInput.step = "0.1";
-    weightInput.min = "0.1";
-    weightInput.value = parsed.weight != null ? parsed.weight.toFixed(1) : "";
-    weightInput.placeholder = "w";
-
-    function changeWeightForThis(delta) {
-      // ★ まず Undo を積む
-      saveUndoBeforeChange(kind);
-
-      const currentText = getTextByKind(kind);
-      const tks = getTokensFromText(currentText);
-      if (idx < 0 || idx >= tks.length) return;
-
-      const parsedNow = parseWeightToken(tks[idx]);
-      let w = parsedNow.weight;
-      if (w == null) {
-        w = delta > 0 ? 1.1 : 0.9;
-      } else {
-        w = w + delta;
-      }
-      if (w < 0.1) w = 0.1;
-
-      tks[idx] = buildWeightedToken(parsedNow.base, w);
-      const keepCommaNow = hasTrailingComma(currentText);
-      setTextFromTokens(kind, tks, keepCommaNow);
-
-      label.textContent = tks[idx];
-      const parsedAfter = parseWeightToken(tks[idx]);
-      if (parsedAfter.weight != null) {
-        weightInput.value = parsedAfter.weight.toFixed(1);
-      } else {
-        weightInput.value = "";
-      }
+    // ▼ 表示更新：ラベルは base のまま、バッジと入力欄だけ更新
+    const parsedAfter = parseWeightToken(tks[idx]);
+    weightBadge.textContent =
+      parsedAfter.weight != null ? parsedAfter.weight.toFixed(1) : "-";
+    if (parsedAfter.weight != null) {
+      weightInput.value = parsedAfter.weight.toFixed(1);
+    } else {
+      weightInput.value = "";
     }
+  }
 
-    function setupHoldButton(btn, delta) {
-      let holdTimeout = null;
-      let repeatInterval = null;
+  function setupHoldButton(btn, delta) {
+    let holdTimeout = null;
+    let repeatInterval = null;
 
-      const stop = (e) => {
-        if (e) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        if (holdTimeout) {
-          clearTimeout(holdTimeout);
-          holdTimeout = null;
-        }
-        if (repeatInterval) {
-          clearInterval(repeatInterval);
-          repeatInterval = null;
-        }
-      };
-
-      const start = (e) => {
+    const stop = (e) => {
+      if (e) {
         e.preventDefault();
         e.stopPropagation();
-        changeWeightForThis(delta);
-        holdTimeout = setTimeout(() => {
-          repeatInterval = setInterval(() => {
-            changeWeightForThis(delta);
-          }, 120);
-        }, 400);
-      };
+      }
+      if (holdTimeout) {
+        clearTimeout(holdTimeout);
+        holdTimeout = null;
+      }
+      if (repeatInterval) {
+        clearInterval(repeatInterval);
+        repeatInterval = null;
+      }
+    };
 
-      btn.addEventListener("mousedown", start);
-      btn.addEventListener("touchstart", start, { passive: false });
-      btn.addEventListener("mouseup", stop);
-      btn.addEventListener("mouseleave", stop);
-      btn.addEventListener("touchend", stop);
-      btn.addEventListener("touchcancel", stop);
+    const start = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      changeWeightForThis(delta);
+      holdTimeout = setTimeout(() => {
+        repeatInterval = setInterval(() => {
+          changeWeightForThis(delta);
+        }, 120);
+      }, 400);
+    };
+
+    btn.addEventListener("mousedown", start);
+    btn.addEventListener("touchstart", start, { passive: false });
+    btn.addEventListener("mouseup", stop);
+    btn.addEventListener("mouseleave", stop);
+    btn.addEventListener("touchend", stop);
+    btn.addEventListener("touchcancel", stop);
+  }
+
+  setupHoldButton(plusBtn, +0.1);
+  setupHoldButton(minusBtn, -0.1);
+
+  weightInput.onchange = (e) => {
+    e.stopPropagation();
+    const val = e.target.value.trim();
+
+    // ★ ここで Undo を積む
+    saveUndoBeforeChange(kind);
+
+    const currentText = getTextByKind(kind);
+    const tks = getTokensFromText(currentText);
+    if (idx < 0 || idx >= tks.length) return;
+
+    const baseParsed = parseWeightToken(tks[idx]);
+
+    if (val === "") {
+      tks[idx] = baseParsed.base;
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 0) {
+        tks[idx] = buildWeightedToken(baseParsed.base, num);
+      } else {
+        // 不正値なら元に戻す
+        const tmpParsed = parseWeightToken(tks[idx]);
+        weightInput.value =
+          tmpParsed.weight != null ? tmpParsed.weight.toFixed(1) : "";
+        return;
+      }
+    }
+    const keepCommaNow = hasTrailingComma(currentText);
+    setTextFromTokens(kind, tks, keepCommaNow);
+
+    // ▼ 表示更新（ラベルは base のまま）
+    const parsedAfter = parseWeightToken(tks[idx]);
+    weightBadge.textContent =
+      parsedAfter.weight != null ? parsedAfter.weight.toFixed(1) : "-";
+    if (parsedAfter.weight != null) {
+      weightInput.value = parsedAfter.weight.toFixed(1);
+    } else {
+      weightInput.value = "";
     }
 
-    setupHoldButton(plusBtn, +0.1);
-    setupHoldButton(minusBtn, -0.1);
+    renderWordsEditList();
+  };
 
-    weightInput.onchange = (e) => {
-      e.stopPropagation();
-      const val = e.target.value.trim();
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "chip-close";
+  closeBtn.textContent = "×";
+  closeBtn.onclick = (e) => {
+    e.stopPropagation();
 
-      // ★ ここで Undo を積む
-      saveUndoBeforeChange(kind);
+    // ★ 削除前に Undo を積む
+    saveUndoBeforeChange(kind);
 
-      const currentText = getTextByKind(kind);
-      const tks = getTokensFromText(currentText);
-      if (idx < 0 || idx >= tks.length) return;
+    const currentText = getTextByKind(kind);
+    const tks = getTokensFromText(currentText);
+    tks.splice(idx, 1);
+    const keepCommaNow = hasTrailingComma(currentText);
+    setTextFromTokens(kind, tks, keepCommaNow);
+    renderWordsEditList();
+  };
 
-      const baseParsed = parseWeightToken(tks[idx]);
-
-      if (val === "") {
-        tks[idx] = baseParsed.base;
-      } else {
-        const num = parseFloat(val);
-        if (!isNaN(num) && num > 0) {
-          tks[idx] = buildWeightedToken(baseParsed.base, num);
-        } else {
-          weightInput.value = baseParsed.weight != null ? baseParsed.weight.toFixed(1) : "";
-          return;
-        }
-      }
-      const keepCommaNow = hasTrailingComma(currentText);
-      setTextFromTokens(kind, tks, keepCommaNow);
-      renderWordsEditList();
-    };
-
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "chip-close";
-    closeBtn.textContent = "×";
-    closeBtn.onclick = (e) => {
-      e.stopPropagation();
-
-      // ★ 削除前に Undo を積む
-      saveUndoBeforeChange(kind);
-
-      const currentText = getTextByKind(kind);
-      const tks = getTokensFromText(currentText);
-      tks.splice(idx, 1);
-      const keepCommaNow = hasTrailingComma(currentText);
-      setTextFromTokens(kind, tks, keepCommaNow);
-      renderWordsEditList();
-    };
+  // ……この下は、あなたの元コードの
+  // touchstart / touchmove / touchend / mousedown / mousemove / mouseup
+  // の処理をそのまま使ってOKです（draggingまわりだけ）
 
     // --- タッチドラッグ ---
     chip.addEventListener("touchstart", (e) => {
@@ -2320,7 +2348,9 @@ function renderWordsEditList() {
       renderWordsEditList();
     });
 
-    chip.appendChild(label);
+    // 最後に、子要素をくっつける順番だけ注意：
+  chip.appendChild(label);
+  chip.appendChild(weightBadge);
 
     // 強調/弱体モードのときだけ、重み編集 UI を表示
     if (wordsEditMode === "weight") {
