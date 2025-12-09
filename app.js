@@ -1929,7 +1929,6 @@ function renderWordsEditList() {
   chipsContainer.className = "words-edit-chips";
 
   tokens.forEach((tok, idx) => {
-    tokens.forEach((tok, idx) => {
   const chip = document.createElement("span");
   chip.className = "chip";
   chip.dataset.index = idx;
