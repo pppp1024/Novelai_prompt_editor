@@ -420,6 +420,31 @@
   border-color: #007bff;
   font-weight: 600;
 }
+    /* 単語編集モーダル内のチップ用 */
+.words-edit-chips .chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 元の単語ラベル */
+.words-edit-chips .chip-label {
+  margin-right: 4px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 重み表示用バッジ（幅を固定気味にしてレイアウトを安定させる） */
+.words-edit-chips .chip-weight-badge {
+  font-size: 11px;
+  padding: 0 4px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  min-width: 30px;
+  text-align: center;
+  margin-right: 4px;
+}
 
     /* プリセットプレビュー */
     #presetPreview {
