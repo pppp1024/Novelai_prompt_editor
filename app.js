@@ -440,44 +440,104 @@ function renderTabListModal() {
 
     tabListListEl.appendChild(row);
   });
-
-  // プリセット用の行も一番下に追加
-  const presetRow = document.createElement("div");
-  presetRow.className = "candidate-row";
-
-  const presetSelectBtn = document.createElement("button");
-  const isPresetActive = (activeView === "preset");
-  if (isPresetActive) {
-    presetSelectBtn.textContent = "選択中";
-    presetSelectBtn.disabled = true;
-    presetSelectBtn.style.fontWeight = "600";
-  } else {
-    presetSelectBtn.textContent = "切り替え";
-    presetSelectBtn.onclick = () => {
-      activeView = "preset";
-      saveAppData();
-      updateView();
-      renderTabs();
-      closeTabListModal();
-    };
-  }
-
-  const presetLabel = document.createElement("input");
-  presetLabel.type = "text";
-  presetLabel.value = "プリセット";
-  presetLabel.disabled = true;
-  presetLabel.style.flex = "1";
-  presetLabel.style.background = "#f9f9f9";
-
-  presetRow.appendChild(presetSelectBtn);
-  presetRow.appendChild(presetLabel);
-  tabListListEl.appendChild(presetRow);
 }
 
 // プリセットカテゴリ編集モーダル
 const presetCategoryEditModal = document.getElementById("presetCategoryEditModal");
 const presetCategoryEditListEl = document.getElementById("presetCategoryEditList");
 const presetCategoryEditCollapsed = {};
+
+// ★ プリセット登録モーダル（タブのPOS/NEGを保存）
+const presetAddModal = document.getElementById("presetAddModal");
+const presetAddCategorySelect = document.getElementById("presetAddCategorySelect");
+const presetAddNameInput = document.getElementById("presetAddNameInput");
+const presetAddConfirmBtn = document.getElementById("presetAddConfirmBtn");
+const presetAddCancelBtn = document.getElementById("presetAddCancelBtn");
+const presetAddOpenCategoryEditBtn = document.getElementById("presetAddOpenCategoryEditBtn");
+const addPresetFromTabBtn = document.getElementById("addPresetFromTabBtn");
+
+function closePresetAddModal() {
+  if (presetAddModal) presetAddModal.style.display = "none";
+}
+window.closePresetAddModal = closePresetAddModal;
+
+function renderPresetAddCategoryOptions() {
+  if (!presetAddCategorySelect) return;
+  presetAddCategorySelect.innerHTML = "";
+  (appData.presetGroups || []).forEach(g => {
+    const opt = document.createElement("option");
+    opt.value = g.id;
+    opt.textContent = g.name;
+    presetAddCategorySelect.appendChild(opt);
+  });
+}
+
+// 「プリセットに追加」を押したら開く
+if (addPresetFromTabBtn && presetAddModal) {
+  addPresetFromTabBtn.onclick = () => {
+    renderPresetAddCategoryOptions();
+    if (presetAddNameInput) presetAddNameInput.value = "";
+    presetAddModal.style.display = "flex";
+    // iPhoneでキーボードを出しやすいように少し遅らせる
+    setTimeout(() => presetAddNameInput && presetAddNameInput.focus(), 50);
+  };
+}
+
+// カテゴリ編集を開く（既存モーダルを再利用）
+if (presetAddOpenCategoryEditBtn && presetCategoryEditModal) {
+  presetAddOpenCategoryEditBtn.onclick = () => {
+    closePresetAddModal();
+    renderPresetCategoryEditModal();
+    presetCategoryEditModal.style.display = "flex";
+  };
+}
+
+if (presetAddCancelBtn) {
+  presetAddCancelBtn.onclick = () => closePresetAddModal();
+}
+
+if (presetAddConfirmBtn) {
+  presetAddConfirmBtn.onclick = () => {
+    const tab = getCurrentTab();
+    if (!tab) return;
+
+    const groupId = presetAddCategorySelect ? presetAddCategorySelect.value : "";
+    const name = (presetAddNameInput ? presetAddNameInput.value : "").trim();
+
+    if (!groupId) {
+      alert("カテゴリを選択してください。");
+      return;
+    }
+    if (!name) {
+      alert("プリセット名を入力してください。");
+      return;
+    }
+
+    const group = (appData.presetGroups || []).find(g => g.id === groupId);
+    if (!group) {
+      alert("カテゴリが見つかりません。");
+      return;
+    }
+    if (!Array.isArray(group.items)) group.items = [];
+
+    // 同名チェック（任意：同名があっても追加は可能だが、ここでは警告）
+    const exists = group.items.some(p => (p.name || "") === name);
+    if (exists && !confirm("同じ名前のプリセットが既にあります。追加しますか？")) {
+      return;
+    }
+
+    group.items.push({
+      id: "preset-" + Date.now(),
+      name,
+      textPos: tab.textPos || "",
+      textNeg: tab.textNeg || ""
+    });
+
+    saveAppData();
+    closePresetAddModal();
+    showToast("プリセットに追加しました");
+  };
+}
 
 // ヘルプモーダル
 const helpModal = document.getElementById("helpModal");
@@ -677,39 +737,23 @@ function renderTabs() {
     };
     tabsEl.appendChild(btn);
   });
-
-  const presetBtn = document.createElement("button");
-  presetBtn.className = "tab-button" + (activeView === "preset" ? " active" : "");
-  presetBtn.textContent = "プリセット";
-  presetBtn.onclick = () => {
-    activeView = "preset";
-    saveAppData();       // ★ ビューも保存
-    updateView();
-    renderTabs();
-  };
-  tabsEl.appendChild(presetBtn);
 }
 
 function updateView() {
-  if (activeView === "main") {
-    mainView.style.display = "block";
-    presetView.style.display = "none";
-    const tab = getCurrentTab();
-    if (tab) {
-      editorPosEl.value = tab.textPos || "";
-      editorNegEl.value = tab.textNeg || "";
-      syncWordsFromPosText(tab.textPos || "");
-      syncWordsFromNegText(tab.textNeg || "");
-    }
-    activeEditor = "pos";
-  } else {
-    mainView.style.display = "none";
-    presetView.style.display = "block";
-    presetEditorPosEl.value = appData.presetDraftPosText || "";
-    presetEditorNegEl.value = appData.presetDraftNegText || "";
-    activeEditor = "presetPos";
-    renderPresetCategoryOptions();
+  // ★ プリセット作成タブは廃止：常にメイン画面のみ
+  activeView = "main";
+
+  if (mainView) mainView.style.display = "block";
+  if (presetView) presetView.style.display = "none";
+
+  const tab = getCurrentTab();
+  if (tab) {
+    editorPosEl.value = tab.textPos || "";
+    editorNegEl.value = tab.textNeg || "";
+    syncWordsFromPosText(tab.textPos || "");
+    syncWordsFromNegText(tab.textNeg || "");
   }
+  activeEditor = "pos";
 }
 
 function getTokensFromText(text) {
