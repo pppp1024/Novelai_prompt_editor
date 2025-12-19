@@ -548,6 +548,28 @@
   }
 }
       
+  
+    /* ★ トースト（コピー完了などの通知） */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.88);
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.4;
+      opacity: 0;
+      transition: opacity .2s ease;
+      pointer-events: none;
+      z-index: 2000;
+      max-width: 92vw;
+      text-align: center;
+      white-space: pre-wrap;
+    }
+
   </style>
 </head>
 <body>
@@ -611,6 +633,7 @@
       <button id="copyPosBtn">コピー</button>
       <button id="copyPosDiffBtn">差分コピー</button>
       <button id="posHistoryBtn">履歴</button>
+      <button id="novelaiPosBtn" title="ポジティブをコピーしてNovelAIへ">NovelAIへ</button>
       
       <button id="posUndoBtn">Undo</button>
       <button id="posClearBtn" title="すべて削除">🗑</button>
@@ -635,6 +658,7 @@
       <button id="copyNegBtn">コピー</button>
       <button id="copyNegDiffBtn">差分コピー</button>
       <button id="negHistoryBtn">履歴</button>
+      <button id="novelaiNegBtn" title="ネガティブをコピーしてNovelAIへ">NovelAIへ</button>
       
       <button id="negUndoBtn">Undo</button>
       <button id="negClearBtn" title="すべて削除">🗑</button>
@@ -873,6 +897,9 @@
       <div id="historyContent" style="font-size:12px; line-height:1.6; padding:4px 0;"></div>
     </div>
   </div>
+
+  <!-- ★ トースト（通知） -->
+  <div id="toast"></div>
 
   <!-- ▼ ここで候補リストを外部ファイルから読み込む -->
   <script src="candidates.js"></script>
