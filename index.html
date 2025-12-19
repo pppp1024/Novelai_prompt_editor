@@ -629,11 +629,13 @@
       <button id="editWordsBtn">単語編集</button>
       <button id="openPresetsBtn">プリセット</button>
 
-      <!-- ★ コピー関連 -->
+            <button id="addPresetFromTabBtn">プリセットに追加</button>
+
+<!-- ★ コピー関連 -->
       <button id="copyPosBtn">コピー</button>
       <button id="copyPosDiffBtn">差分コピー</button>
       <button id="posHistoryBtn">履歴</button>
-      <button id="novelaiPosBtn" title="ポジティブをコピーしてNovelAIへ">NovelAIへ</button>
+      <button id="novelaiPosBtn" title="ポジティブをコピーしてNovelAIへ">コピーしてNovelAIへ</button>
       
       <button id="posUndoBtn">Undo</button>
       <button id="posClearBtn" title="すべて削除">🗑</button>
@@ -658,7 +660,7 @@
       <button id="copyNegBtn">コピー</button>
       <button id="copyNegDiffBtn">差分コピー</button>
       <button id="negHistoryBtn">履歴</button>
-      <button id="novelaiNegBtn" title="ネガティブをコピーしてNovelAIへ">NovelAIへ</button>
+      <button id="novelaiNegBtn" title="ネガティブをコピーしてNovelAIへ">コピーしてNovelAIへ</button>
       
       <button id="negUndoBtn">Undo</button>
       <button id="negClearBtn" title="すべて削除">🗑</button>
@@ -886,6 +888,38 @@
     </div>
   </div>
 </div>
+
+  
+  <!-- ★ プリセット登録モーダル（タブのPOS/NEGをそのまま保存） -->
+  <div class="modal-backdrop" id="presetAddModal">
+    <div class="modal" style="width:95vw; max-width:480px;">
+      <div class="modal-header">
+        <h2>プリセットに追加</h2>
+        <button class="modal-close" onclick="closePresetAddModal()">×</button>
+      </div>
+
+      <div style="font-size:12px; line-height:1.6; padding:4px 0;">
+        <div class="candidate-row">
+          <select id="presetAddCategorySelect" style="min-width:140px;"></select>
+          <button id="presetAddOpenCategoryEditBtn" style="font-size:12px;">カテゴリ編集</button>
+        </div>
+
+        <div class="candidate-row">
+          <input id="presetAddNameInput" type="text" placeholder="プリセット名（例：高品質基本）" />
+        </div>
+
+        <div class="candidate-row" style="justify-content:flex-end;">
+          <button id="presetAddCancelBtn">キャンセル</button>
+          <button id="presetAddConfirmBtn" style="font-weight:600;">追加</button>
+        </div>
+
+        <div style="font-size:11px; color:#555;">
+          ※ 現在のタブのポジティブ／ネガティブ両方がプリセットとして保存されます。
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- ★ コピー履歴モーダル -->
   <div class="modal-backdrop" id="historyModal">
