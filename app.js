@@ -1158,10 +1158,98 @@ editorNegEl.addEventListener("focus", () => { activeEditor = "neg"; });
 presetEditorPosEl.addEventListener("focus", () => { activeEditor = "presetPos"; });
 presetEditorNegEl.addEventListener("focus", () => { activeEditor = "presetNeg"; });
 
+
+/* ===========================================================
+   ★ クリップボード＆NovelAI連携（コピーしてNovelAIへ）
+   - 同じ名前のタブを再利用して「タブ増殖」を防ぐ
+   =========================================================== */
+const NOVELAI_URL = "https://novelai.net/image";
+const NOVELAI_TARGET = "novelai_tab";
+
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  if (!el) {
+    // toastが無い場合は従来どおりalertにフォールバック
+    alert(msg);
+    return;
+  }
+  el.textContent = msg;
+  el.style.opacity = "1";
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => {
+    el.style.opacity = "0";
+  }, 1500);
+}
+
+// Clipboard API が失敗したときのフォールバックも含めてコピー
+async function copyText(text) {
+  const t = (text ?? "");
+
+  // まずは標準API
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(t);
+      return true;
+    } catch (e) {
+      // fall through
+    }
+  }
+
+  // フォールバック（古いSafari等）
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = t;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return !!ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+// kind: "pos" | "neg"
+async function openNovelAIAndCopy(kind) {
+  const tab = getCurrentTab();
+  if (!tab) return;
+
+  const label = (kind === "neg") ? "ネガティブ" : "ポジティブ";
+  const text = (kind === "neg") ? (tab.textNeg || "") : (tab.textPos || "");
+
+  // ★ 同名ターゲットを使って既存タブを再利用（無ければ新規）
+  const w = window.open(NOVELAI_URL, NOVELAI_TARGET);
+
+  const ok = await copyText(text);
+  if (ok) {
+    recordCopy(kind);
+    showToast(`${label}をコピーしました。\nNovelAIで貼り付けてください`);
+  } else {
+    showToast(`${label}のコピーに失敗しました（手動でコピーしてください）`);
+  }
+
+  if (!w) {
+    // ポップアップブロッカーなど
+    showToast("NovelAIタブを開けませんでした（ポップアップブロックの可能性）");
+  }
+}
+
 // ★ コピー系ボタン（通常コピー／差分コピー／履歴） =======================
 const historyModal = document.getElementById("historyModal");
 const historyContentEl = document.getElementById("historyContent");
 let historyKind = "pos"; // "pos" | "neg"
+
+// ★ NovelAIへ（コピーして移動）
+const novelaiPosBtn = document.getElementById("novelaiPosBtn");
+const novelaiNegBtn = document.getElementById("novelaiNegBtn");
+if (novelaiPosBtn) novelaiPosBtn.onclick = () => openNovelAIAndCopy("pos");
+if (novelaiNegBtn) novelaiNegBtn.onclick = () => openNovelAIAndCopy("neg");
+
 
 // 通常コピー
 document.getElementById("copyPosBtn").onclick = async () => {
@@ -1170,12 +1258,13 @@ document.getElementById("copyPosBtn").onclick = async () => {
   const text = tab.textPos || "";
 
   try {
-    await navigator.clipboard.writeText(text);
+    const ok = await copyText(text);
+    if (!ok) throw new Error('copy failed');
     // 履歴に保存
     recordCopy("pos");
-    alert("ポジティブをコピーしました");
+    showToast("ポジティブをコピーしました");
   } catch {
-    alert("コピーに失敗しました");
+    showToast("コピーに失敗しました");
   }
 };
 
@@ -1185,12 +1274,13 @@ document.getElementById("copyNegBtn").onclick = async () => {
   const text = tab.textNeg || "";
 
   try {
-    await navigator.clipboard.writeText(text);
+    const ok = await copyText(text);
+    if (!ok) throw new Error('copy failed');
     // 履歴に保存
     recordCopy("neg");
-    alert("ネガティブをコピーしました");
+    showToast("ネガティブをコピーしました");
   } catch {
-    alert("コピーに失敗しました");
+    showToast("コピーに失敗しました");
   }
 };
 
@@ -1206,11 +1296,12 @@ document.getElementById("copyPosDiffBtn").onclick = async () => {
   if (!hasHistory) {
     // 履歴がないときは全体コピー
     try {
-      await navigator.clipboard.writeText(tab.textPos || "");
+      const ok = await copyText(tab.textPos || "");
+      if (!ok) throw new Error('copy failed');
       recordCopy("pos");
-      alert("履歴がないため、ポジティブ全体をコピーしました");
+      showToast("履歴がないため、ポジティブ全体をコピーしました");
     } catch {
-      alert("コピーに失敗しました");
+      showToast("コピーに失敗しました");
     }
     return;
   }
@@ -1221,12 +1312,13 @@ document.getElementById("copyPosDiffBtn").onclick = async () => {
   }
 
   try {
-    await navigator.clipboard.writeText(diff);
+    const ok = await copyText(diff);
+    if (!ok) throw new Error('copy failed');
     // ベースラインとして現在の全文を履歴に残す
     recordCopy("pos");
-    alert("前回から追加・変更された部分だけをコピーしました");
+    showToast("前回から追加・変更された部分だけをコピーしました");
   } catch {
-    alert("コピーに失敗しました");
+    showToast("コピーに失敗しました");
   }
 };
 
@@ -1240,11 +1332,12 @@ document.getElementById("copyNegDiffBtn").onclick = async () => {
 
   if (!hasHistory) {
     try {
-      await navigator.clipboard.writeText(tab.textNeg || "");
+      const ok = await copyText(tab.textNeg || "");
+      if (!ok) throw new Error('copy failed');
       recordCopy("neg");
-      alert("履歴がないため、ネガティブ全体をコピーしました");
+      showToast("履歴がないため、ネガティブ全体をコピーしました");
     } catch {
-      alert("コピーに失敗しました");
+      showToast("コピーに失敗しました");
     }
     return;
   }
@@ -1255,11 +1348,12 @@ document.getElementById("copyNegDiffBtn").onclick = async () => {
   }
 
   try {
-    await navigator.clipboard.writeText(diff);
+    const ok = await copyText(diff);
+    if (!ok) throw new Error('copy failed');
     recordCopy("neg");
-    alert("前回から追加・変更された部分だけをコピーしました");
+    showToast("前回から追加・変更された部分だけをコピーしました");
   } catch {
-    alert("コピーに失敗しました");
+    showToast("コピーに失敗しました");
   }
 };
 
