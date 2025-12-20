@@ -289,6 +289,14 @@ const presetMultiToggleEl = document.getElementById("presetMultiToggle");
 const presetMultiAddBtn = document.getElementById("presetMultiAddBtn");
 const presetPreviewEl = document.getElementById("presetPreview");
 
+const presetSelectViewEl = document.getElementById("presetSelectView");
+const presetEditViewEl = document.getElementById("presetEditView");
+const presetEditListEl = document.getElementById("presetEditList");
+const togglePresetEditBtn = document.getElementById("togglePresetEditBtn");
+const presetEditOpenCategoryEditBtn = document.getElementById("presetEditOpenCategoryEditBtn");
+const presetEditCollapsed = {};
+let presetEditMode = false;
+
 // 適用方法（追加 / 上書き）
 let presetApplyMode = "append";
 const presetApplyModeRadios = document.querySelectorAll('input[name="presetApplyMode"]');
@@ -2541,6 +2549,13 @@ document.getElementById("openPresetCategoryEditBtn").onclick = () => {
   presetCategoryEditModal.style.display = "flex";
 };
 
+if (presetEditOpenCategoryEditBtn) {
+  presetEditOpenCategoryEditBtn.onclick = () => {
+    renderPresetCategoryEditList();
+    presetCategoryEditModal.style.display = "flex";
+  };
+}
+
 function closePresetCategoryEditModal() {
   presetCategoryEditModal.style.display = "none";
 }
@@ -2748,8 +2763,175 @@ function renderPresetCategoryEditList() {
 }
 
 // --- プリセットモーダル ---
+
+function setPresetModalMode(editMode) {
+  presetEditMode = !!editMode;
+  if (togglePresetEditBtn) togglePresetEditBtn.textContent = presetEditMode ? "完了" : "編集";
+  if (presetSelectViewEl) presetSelectViewEl.style.display = presetEditMode ? "none" : "block";
+  if (presetEditViewEl) presetEditViewEl.style.display = presetEditMode ? "block" : "none";
+  if (presetEditMode) {
+    renderPresetEditList();
+  } else {
+    renderPresetList();
+  }
+}
+
+if (togglePresetEditBtn) {
+  togglePresetEditBtn.onclick = () => {
+    setPresetModalMode(!presetEditMode);
+  };
+}
+
+function renderPresetEditList() {
+  if (!presetEditListEl) return;
+  presetEditListEl.innerHTML = "";
+
+  if (!appData.presetGroups || appData.presetGroups.length === 0) {
+    const p = document.createElement("p");
+    p.textContent = "プリセットがありません。まず「プリセットに追加」で登録してください。";
+    presetEditListEl.appendChild(p);
+    return;
+  }
+
+  // カテゴリ選択肢（移動用）
+  const groupOptions = (appData.presetGroups || []).map(g => ({ id: g.id, name: g.name }));
+
+  appData.presetGroups.forEach(group => {
+    const groupDiv = document.createElement("div");
+    groupDiv.className = "candidate-group";
+
+    const header = document.createElement("div");
+    header.className = "candidate-group-header";
+
+    const title = document.createElement("span");
+    title.textContent = group.name;
+
+    const toggleBtn = document.createElement("button");
+    const collapsed = !!presetEditCollapsed[group.id];
+    toggleBtn.textContent = collapsed ? "＋ 開く" : "－ 閉じる";
+    toggleBtn.onclick = () => {
+      presetEditCollapsed[group.id] = !collapsed;
+      renderPresetEditList();
+    };
+
+    header.appendChild(title);
+    header.appendChild(toggleBtn);
+    groupDiv.appendChild(header);
+
+    const listWrap = document.createElement("div");
+    listWrap.style.display = collapsed ? "none" : "block";
+
+    if (!Array.isArray(group.items) || group.items.length === 0) {
+      const empty = document.createElement("div");
+      empty.style.fontSize = "12px";
+      empty.style.color = "#666";
+      empty.style.padding = "4px 2px";
+      empty.textContent = "（このカテゴリにプリセットはありません）";
+      listWrap.appendChild(empty);
+    } else {
+      group.items.forEach((preset, idx) => {
+        const card = document.createElement("div");
+        card.style.border = "1px solid #eee";
+        card.style.borderRadius = "10px";
+        card.style.padding = "8px";
+        card.style.margin = "6px 0";
+        card.style.background = "#fff";
+
+        // 1行目：名前 / カテゴリ移動 / 削除
+        const row1 = document.createElement("div");
+        row1.className = "candidate-row";
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = preset.name || "";
+        nameInput.placeholder = "プリセット名";
+        nameInput.oninput = (e) => {
+          preset.name = e.target.value;
+          saveAppData();
+          // 選択ビューにも反映
+          if (!presetEditMode) return;
+        };
+
+        const moveSel = document.createElement("select");
+        groupOptions.forEach(opt => {
+          const o = document.createElement("option");
+          o.value = opt.id;
+          o.textContent = opt.name;
+          if (opt.id === group.id) o.selected = true;
+          moveSel.appendChild(o);
+        });
+        moveSel.onchange = (e) => {
+          const toId = e.target.value;
+          if (toId === group.id) return;
+          const toGroup = appData.presetGroups.find(g => g.id === toId);
+          if (!toGroup) return;
+
+          // 現グループから削除して移動
+          const fromItems = group.items || [];
+          const moving = fromItems.splice(idx, 1)[0];
+          if (!Array.isArray(toGroup.items)) toGroup.items = [];
+          toGroup.items.push(moving);
+
+          saveAppData();
+          renderPresetEditList();
+        };
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "削除";
+        delBtn.style.fontSize = "12px";
+        delBtn.onclick = () => {
+          if (!confirm(`プリセット「${preset.name || ""}」を削除しますか？`)) return;
+          group.items.splice(idx, 1);
+          saveAppData();
+          renderPresetEditList();
+        };
+
+        row1.appendChild(nameInput);
+        row1.appendChild(moveSel);
+        row1.appendChild(delBtn);
+        card.appendChild(row1);
+
+        // 2行目：ポジ
+        const row2 = document.createElement("div");
+        row2.className = "candidate-row";
+        const taPos = document.createElement("textarea");
+        taPos.placeholder = "ポジティブ";
+        taPos.value = preset.textPos || "";
+        taPos.oninput = (e) => {
+          preset.textPos = e.target.value;
+          saveAppData();
+        };
+        row2.appendChild(taPos);
+        card.appendChild(row2);
+
+        // 3行目：ネガ
+        const row3 = document.createElement("div");
+        row3.className = "candidate-row";
+        const taNeg = document.createElement("textarea");
+        taNeg.placeholder = "ネガティブ";
+        taNeg.value = preset.textNeg || "";
+        taNeg.oninput = (e) => {
+          preset.textNeg = e.target.value;
+          saveAppData();
+        };
+        row3.appendChild(taNeg);
+        card.appendChild(row3);
+
+        listWrap.appendChild(card);
+      });
+    }
+
+    groupDiv.appendChild(listWrap);
+    presetEditListEl.appendChild(groupDiv);
+  });
+
+  // 編集内容が選択ビューに戻ったとき反映されるように
+  // （毎キー入力で再描画するとカーソルが飛ぶので、ここでは保存のみ。）
+}
+
 function openPresetModal() {
   presetMultiSelectMode = false;
+  setPresetModalMode(false);
   presetSelectedItems = [];
   presetMultiToggleEl.checked = false;
   presetPreviewEl.textContent = "";
