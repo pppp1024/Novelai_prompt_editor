@@ -1215,8 +1215,6 @@ presetEditorNegEl.addEventListener("focus", () => { activeEditor = "presetNeg"; 
    ★ クリップボード＆NovelAI連携（コピーしてNovelAIへ）
    - 同じ名前のタブを再利用して「タブ増殖」を防ぐ
    =========================================================== */
-const NOVELAI_URL = "https://novelai.net/image";
-const NOVELAI_TARGET = "novelai_tab";
 
 function showToast(msg) {
   const el = document.getElementById("toast");
@@ -1267,23 +1265,6 @@ async function copyText(text) {
 }
 
 // kind: "pos" | "neg"
-async function openNovelAIAndCopy(kind) {
-  const tab = getCurrentTab();
-  if (!tab) return;
-
-  const label = (kind === "neg") ? "ネガティブ" : "ポジティブ";
-  const text = (kind === "neg") ? (tab.textNeg || "") : (tab.textPos || "");
-
-  // ★ 同名ターゲットを使って既存タブを再利用（無ければ新規）
-  const w = window.open(NOVELAI_URL, NOVELAI_TARGET);
-
-  const ok = await copyText(text);
-  if (ok) {
-    recordCopy(kind);
-    showToast(`${label}をコピーしました。\nNovelAIで貼り付けてください`);
-  } else {
-    showToast(`${label}のコピーに失敗しました（手動でコピーしてください）`);
-  }
 
   if (!w) {
     // ポップアップブロッカーなど
@@ -1295,12 +1276,6 @@ async function openNovelAIAndCopy(kind) {
 const historyModal = document.getElementById("historyModal");
 const historyContentEl = document.getElementById("historyContent");
 let historyKind = "pos"; // "pos" | "neg"
-
-// ★ NovelAIへ（コピーして移動）
-const novelaiPosBtn = document.getElementById("novelaiPosBtn");
-const novelaiNegBtn = document.getElementById("novelaiNegBtn");
-if (novelaiPosBtn) novelaiPosBtn.onclick = () => openNovelAIAndCopy("pos");
-if (novelaiNegBtn) novelaiNegBtn.onclick = () => openNovelAIAndCopy("neg");
 
 
 // 通常コピー
@@ -3130,3 +3105,4 @@ presetCreateBtn.onclick = () => {
 // 初期表示
 renderTabs();
 updateView();
+
