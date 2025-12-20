@@ -771,9 +771,13 @@
     <div class="modal" style="width: 95vw; max-width: 480px;">
       <div class="modal-header">
         <h2>プリセット</h2>
-        <button class="modal-close" onclick="closePresetModal()">×</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button id="togglePresetEditBtn">編集</button>
+          <button class="modal-close" onclick="closePresetModal()">×</button>
+        </div>
       </div>
 
+      <div id="presetSelectView">
       <div id="presetMultiToolbar" class="modal-subtoolbar" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
         <label style="font-size:12px;">
           <input type="checkbox" id="presetMultiToggle" />
@@ -795,6 +799,15 @@
 
       <div id="presetSelectList"></div>
       <div id="presetPreview"></div>
+      </div>
+
+      <div id="presetEditView" style="display:none;">
+        <div class="modal-subtoolbar" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <button id="presetEditOpenCategoryEditBtn" style="font-size:12px;">カテゴリ編集</button>
+          <span style="font-size:12px; color:#555;">プリセット名・内容の編集／削除ができます</span>
+        </div>
+        <div id="presetEditList" style="margin-top:6px;"></div>
+      </div>
     </div>
   </div>
 
