@@ -1264,13 +1264,6 @@ async function copyText(text) {
   }
 }
 
-// kind: "pos" | "neg"
-
-  if (!w) {
-    // ポップアップブロッカーなど
-    showToast("NovelAIタブを開けませんでした（ポップアップブロックの可能性）");
-  }
-}
 
 // ★ コピー系ボタン（通常コピー／差分コピー／履歴） =======================
 const historyModal = document.getElementById("historyModal");
@@ -3105,4 +3098,3 @@ presetCreateBtn.onclick = () => {
 // 初期表示
 renderTabs();
 updateView();
-
