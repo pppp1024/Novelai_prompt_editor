@@ -356,6 +356,43 @@
       border-color: #007aff;
     }
 
+    /* ============================
+       プリセット：チップ展開表示
+       ============================ */
+    .preset-chip-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .preset-chip-btn {
+      flex: 1 1 auto;
+      text-align: left;
+    }
+    .preset-chip-toggle {
+      flex: 0 0 auto;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #f7f7f7;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .preset-chip-content {
+      margin-top: 6px;
+      padding: 8px;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      background: #fafafa;
+      font-size: 11px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .preset-chip-content .preset-label {
+      font-weight: 700;
+      margin: 0 0 2px;
+    }
+
     /* 単語編集モーダル用 */
     .words-edit-chips .chip {
       font-size: 15px;        /* 文字を大きく */
@@ -635,7 +672,9 @@
       <button id="copyPosBtn">コピー</button>
       <button id="copyPosDiffBtn">差分コピー</button>
       <button id="posHistoryBtn">履歴</button>
-<button id="posUndoBtn">Undo</button>
+      <button id="novelaiPosBtn" title="ポジティブをコピーしてNovelAIへ">コピーしてNovelAIへ</button>
+      
+      <button id="posUndoBtn">Undo</button>
       <button id="posClearBtn" title="すべて削除">🗑</button>
     </div>
 
@@ -658,7 +697,9 @@
       <button id="copyNegBtn">コピー</button>
       <button id="copyNegDiffBtn">差分コピー</button>
       <button id="negHistoryBtn">履歴</button>
-<button id="negUndoBtn">Undo</button>
+      <button id="novelaiNegBtn" title="ネガティブをコピーしてNovelAIへ">コピーしてNovelAIへ</button>
+      
+      <button id="negUndoBtn">Undo</button>
       <button id="negClearBtn" title="すべて削除">🗑</button>
     </div>
 
