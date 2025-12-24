@@ -88,16 +88,6 @@ function mergeCandidateGroups(baseGroups, savedGroups) {
   return result;
 }
 
-// innerHTML に流し込むとき用の簡易エスケープ（XSS対策）
-function escapeHtml(str) {
-  return String(str ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 // 旧バージョンからの移行
 const savedRaw =
   localStorage.getItem(STORAGE_KEY) ||
@@ -291,8 +281,7 @@ let candidateSelectedItems = [];
 
 // プリセットモーダル系
 const presetCollapsed = {};
-// ★ プリセット個別の展開状態（モーダルを閉じるとリセットでOK）
-const presetItemExpanded = {};
+const presetExpanded = {}; // presetId -> boolean (内容展開)
 let presetMultiSelectMode = false;
 let presetSelectedItems = [];
 const presetModal = document.getElementById("presetModal");
@@ -1227,8 +1216,6 @@ presetEditorNegEl.addEventListener("focus", () => { activeEditor = "presetNeg"; 
    ★ クリップボード＆NovelAI連携（コピーしてNovelAIへ）
    - 同じ名前のタブを再利用して「タブ増殖」を防ぐ
    =========================================================== */
-const NOVELAI_URL = "https://novelai.net/image";
-const NOVELAI_TARGET = "novelai_tab";
 
 function showToast(msg) {
   const el = document.getElementById("toast");
@@ -1278,41 +1265,11 @@ async function copyText(text) {
   }
 }
 
-// kind: "pos" | "neg"
-async function openNovelAIAndCopy(kind) {
-  const tab = getCurrentTab();
-  if (!tab) return;
-
-  const label = (kind === "neg") ? "ネガティブ" : "ポジティブ";
-  const text = (kind === "neg") ? (tab.textNeg || "") : (tab.textPos || "");
-
-  // ★ 同名ターゲットを使って既存タブを再利用（無ければ新規）
-  const w = window.open(NOVELAI_URL, NOVELAI_TARGET);
-
-  const ok = await copyText(text);
-  if (ok) {
-    recordCopy(kind);
-    showToast(`${label}をコピーしました。\nNovelAIで貼り付けてください`);
-  } else {
-    showToast(`${label}のコピーに失敗しました（手動でコピーしてください）`);
-  }
-
-  if (!w) {
-    // ポップアップブロッカーなど
-    showToast("NovelAIタブを開けませんでした（ポップアップブロックの可能性）");
-  }
-}
 
 // ★ コピー系ボタン（通常コピー／差分コピー／履歴） =======================
 const historyModal = document.getElementById("historyModal");
 const historyContentEl = document.getElementById("historyContent");
 let historyKind = "pos"; // "pos" | "neg"
-
-// ★ NovelAIへ（コピーして移動）
-const novelaiPosBtn = document.getElementById("novelaiPosBtn");
-const novelaiNegBtn = document.getElementById("novelaiNegBtn");
-if (novelaiPosBtn) novelaiPosBtn.onclick = () => openNovelAIAndCopy("pos");
-if (novelaiNegBtn) novelaiNegBtn.onclick = () => openNovelAIAndCopy("neg");
 
 
 // 通常コピー
@@ -2947,8 +2904,6 @@ function openPresetModal() {
   presetSelectedItems = [];
   presetMultiToggleEl.checked = false;
   presetPreviewEl.textContent = "";
-  // 展開状態は毎回リセット（軽量＆分かりやすい）
-  for (const k of Object.keys(presetItemExpanded)) delete presetItemExpanded[k];
   renderPresetList();
   presetModal.style.display = "flex";
 }
@@ -2989,84 +2944,76 @@ function renderPresetList() {
     const itemsDiv = document.createElement("div");
     itemsDiv.className = "candidate-group-items";
     itemsDiv.style.display = collapsed ? "none" : "flex";
-    // プリセットは「展開内容」を下に出すので、縦並びが見やすい
-    itemsDiv.style.flexDirection = "column";
-    itemsDiv.style.alignItems = "stretch";
-    itemsDiv.style.gap = "6px";
-    itemsDiv.style.flexWrap = "nowrap";
 
-    group.items.forEach((preset, idx) => {
-      const key = `${group.id}:${preset.id || idx}`;
-      const isExpanded = !!presetItemExpanded[key];
+    
+group.items.forEach((preset, idx) => {
+  // チップ（右端▽で内容を展開）
+  const chip = document.createElement("div");
+  chip.className = "preset-chip";
 
-      const row = document.createElement("div");
-      row.className = "preset-chip-row";
+  // multi-select の選択表示
+  const isSelected = presetMultiSelectMode &&
+    presetSelectedItems.some(sel => sel.groupId === group.id && sel.index === idx);
+  if (isSelected) chip.classList.add("selected");
 
-      const b = document.createElement("button");
-      b.className = "preset-chip-btn";
-      b.textContent = preset.name;
+  const label = document.createElement("div");
+  label.className = "preset-chip-label";
+  label.textContent = preset.name || "(no name)";
 
-      const isSelected = presetMultiSelectMode &&
-        presetSelectedItems.some(sel => sel.groupId === group.id && sel.index === idx);
-      if (isSelected) b.classList.add("selected");
+  const toggle = document.createElement("button");
+  toggle.className = "preset-chip-toggle";
+  const open = !!presetExpanded[preset.id];
+  toggle.textContent = open ? "△" : "▽";
+  toggle.title = "内容を表示";
 
-      b.onclick = () => {
-        // 既存のプレビューも残す（展開表示と併用）
-        presetPreviewEl.textContent =
-          `【${preset.name}】\n` +
-          "[ポジティブ]\n" + (preset.textPos || "") + "\n\n" +
-          "[ネガティブ]\n" + (preset.textNeg || "");
+  const expand = document.createElement("div");
+  expand.className = "preset-chip-expand";
+  expand.style.display = open ? "block" : "none";
+  expand.textContent =
+    "[ポジティブ]\n" + (preset.textPos || "") + "\n\n" +
+    "[ネガティブ]\n" + (preset.textNeg || "");
 
-        if (!presetMultiSelectMode) {
-          saveUndoBeforeChange("pos");
-          saveUndoBeforeChange("neg");
-          applyPresetsToCurrentTab([preset]);
-          closePresetModal();
-        } else {
-          const i = presetSelectedItems.findIndex(
-            sel => sel.groupId === group.id && sel.index === idx
-          );
-          if (i >= 0) {
-            presetSelectedItems.splice(i, 1);
-            b.classList.remove("selected");
-          } else {
-            presetSelectedItems.push({ groupId: group.id, index: idx });
-            b.classList.add("selected");
-          }
-        }
-      };
+  // ▽ボタン：内容の開閉（適用とは分離）
+  toggle.onclick = (e) => {
+    e.stopPropagation();
+    const nowOpen = !!presetExpanded[preset.id];
+    presetExpanded[preset.id] = !nowOpen;
+    expand.style.display = presetExpanded[preset.id] ? "block" : "none";
+    toggle.textContent = presetExpanded[preset.id] ? "△" : "▽";
+  };
 
-      const t = document.createElement("button");
-      t.className = "preset-chip-toggle";
-      t.textContent = isExpanded ? "△" : "▽";
-      t.title = isExpanded ? "閉じる" : "内容を表示";
-      t.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        presetItemExpanded[key] = !presetItemExpanded[key];
-        renderPresetList();
-      };
+  // チップ本体クリック：従来どおり（プレビュー更新＋適用/選択）
+  chip.onclick = () => {
+    presetPreviewEl.textContent =
+      `【${preset.name || ""}】\n` +
+      "[ポジティブ]\n" + (preset.textPos || "") + "\n\n" +
+      "[ネガティブ]\n" + (preset.textNeg || "");
 
-      row.appendChild(b);
-      row.appendChild(t);
-      itemsDiv.appendChild(row);
-
-      if (isExpanded) {
-        const c = document.createElement("div");
-        c.className = "preset-chip-content";
-        const pos = (preset.textPos || "").trim();
-        const neg = (preset.textNeg || "").trim();
-        c.innerHTML =
-          `<div class="preset-label">[ポジティブ]</div>` +
-          `${escapeHtml(pos) || "(なし)"}` +
-          `<div style="height:8px;"></div>` +
-          `<div class="preset-label">[ネガティブ]</div>` +
-          `${escapeHtml(neg) || "(なし)"}`;
-        itemsDiv.appendChild(c);
+    if (!presetMultiSelectMode) {
+      saveUndoBeforeChange("pos");
+      saveUndoBeforeChange("neg");
+      applyPresetsToCurrentTab([preset]);
+      closePresetModal();
+    } else {
+      const i = presetSelectedItems.findIndex(
+        sel => sel.groupId === group.id && sel.index === idx
+      );
+      if (i >= 0) {
+        presetSelectedItems.splice(i, 1);
+        chip.classList.remove("selected");
+      } else {
+        presetSelectedItems.push({ groupId: group.id, index: idx });
+        chip.classList.add("selected");
       }
-    });
+    }
+  };
 
-    groupDiv.appendChild(itemsDiv);
+  chip.appendChild(label);
+  chip.appendChild(toggle);
+  chip.appendChild(expand);
+  itemsDiv.appendChild(chip);
+});
+groupDiv.appendChild(itemsDiv);
     presetSelectListEl.appendChild(groupDiv);
   });
 }
