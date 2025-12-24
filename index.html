@@ -356,43 +356,6 @@
       border-color: #007aff;
     }
 
-    /* ============================
-       プリセット：チップ展開表示
-       ============================ */
-    .preset-chip-row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-    .preset-chip-btn {
-      flex: 1 1 auto;
-      text-align: left;
-    }
-    .preset-chip-toggle {
-      flex: 0 0 auto;
-      padding: 3px 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      background: #f7f7f7;
-      font-size: 12px;
-      line-height: 1;
-    }
-    .preset-chip-content {
-      margin-top: 6px;
-      padding: 8px;
-      border: 1px solid #eee;
-      border-radius: 10px;
-      background: #fafafa;
-      font-size: 11px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-    .preset-chip-content .preset-label {
-      font-weight: 700;
-      margin: 0 0 2px;
-    }
-
     /* 単語編集モーダル用 */
     .words-edit-chips .chip {
       font-size: 15px;        /* 文字を大きく */
@@ -607,6 +570,58 @@
       white-space: pre-wrap;
     }
 
+  
+    /* ============================
+       ★ プリセット確認（チップ内展開）
+       - チップ右端に▽を固定
+       - 内容は小さめフォントで表示
+       ============================ */
+    .preset-chip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      padding: 4px 26px 4px 8px; /* 右に▽分の余白 */
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      background: #fff;
+      font-size: 11px;
+      line-height: 1.3;
+      cursor: pointer;
+      user-select: none;
+    }
+    .preset-chip.selected {
+      background: #cce4ff;
+      border-color: #007aff;
+    }
+    .preset-chip-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+      pointer-events: none;
+    }
+    .preset-chip-toggle {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      line-height: 1;
+      padding: 0 2px;
+      cursor: pointer;
+    }
+    .preset-chip-expand {
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 1px dashed #e5e5e5;
+      font-size: 10px;          /* ←ご要望：小さめ */
+      color: #333;
+      white-space: pre-wrap;
+    }
+
   </style>
 </head>
 <body>
@@ -672,9 +687,7 @@
       <button id="copyPosBtn">コピー</button>
       <button id="copyPosDiffBtn">差分コピー</button>
       <button id="posHistoryBtn">履歴</button>
-      <button id="novelaiPosBtn" title="ポジティブをコピーしてNovelAIへ">コピーしてNovelAIへ</button>
-      
-      <button id="posUndoBtn">Undo</button>
+<button id="posUndoBtn">Undo</button>
       <button id="posClearBtn" title="すべて削除">🗑</button>
     </div>
 
@@ -697,9 +710,7 @@
       <button id="copyNegBtn">コピー</button>
       <button id="copyNegDiffBtn">差分コピー</button>
       <button id="negHistoryBtn">履歴</button>
-      <button id="novelaiNegBtn" title="ネガティブをコピーしてNovelAIへ">コピーしてNovelAIへ</button>
-      
-      <button id="negUndoBtn">Undo</button>
+<button id="negUndoBtn">Undo</button>
       <button id="negClearBtn" title="すべて削除">🗑</button>
     </div>
 
