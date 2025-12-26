@@ -570,18 +570,18 @@
       white-space: pre-wrap;
     }
 
-  
     /* ============================
-       ★ プリセット確認（チップ内展開）
-       - チップ右端に▽を固定
-       - 内容は小さめフォントで表示
+       ★ プリセット確認（チップ内展開：下に展開）
+       - チップ右端に▽（ヘッダー内に配置）
+       - ▽タップ：展開/折りたたみ（適用とは分離）
+       - チップ本体タップ：適用/選択
        ============================ */
     .preset-chip {
-      position: relative;
       display: inline-flex;
-      align-items: center;
+      flex-direction: column;   /* ←展開を下に */
+      flex: 0 0 auto;
+      width: fit-content;
       max-width: 100%;
-      padding: 4px 26px 4px 8px; /* 右に▽分の余白 */
       border-radius: 12px;
       border: 1px solid #ccc;
       background: #fff;
@@ -589,40 +589,48 @@
       line-height: 1.3;
       cursor: pointer;
       user-select: none;
+      overflow: hidden;
     }
     .preset-chip.selected {
       background: #cce4ff;
       border-color: #007aff;
     }
+    .preset-chip-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+    }
     .preset-chip-label {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: 100%;
+      max-width: 180px;
       pointer-events: none;
+      flex: 1 1 auto;
+      min-width: 0;
     }
     .preset-chip-toggle {
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
+      flex: 0 0 auto;
       border: none;
       background: transparent;
       font-size: 12px;
       line-height: 1;
-      padding: 0 2px;
+      padding: 2px 4px;
       cursor: pointer;
     }
     .preset-chip-expand {
-      margin-top: 4px;
-      padding-top: 4px;
+      display: none; /* JSで開閉 */
       border-top: 1px dashed #e5e5e5;
-      font-size: 10px;          /* ←ご要望：小さめ */
+      padding: 6px 8px;
+      font-size: 10px;   /* ←ご要望：小さめ */
       color: #333;
       white-space: pre-wrap;
+      max-width: 320px;
+      overflow-wrap: anywhere;
     }
 
-  </style>
+</style>
 </head>
 <body>
 　<!-- ★ アプリ名＆説明（Proma） -->
