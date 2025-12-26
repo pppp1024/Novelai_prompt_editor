@@ -3008,10 +3008,14 @@ group.items.forEach((preset, idx) => {
     }
   };
 
-  chip.appendChild(label);
-  chip.appendChild(toggle);
-  chip.appendChild(expand);
-  itemsDiv.appendChild(chip);
+  const head = document.createElement("div");
+      head.className = "preset-chip-head";
+      head.appendChild(label);
+      head.appendChild(toggle);
+
+      chip.appendChild(head);
+      chip.appendChild(expand);
+      itemsDiv.appendChild(chip);
 });
 groupDiv.appendChild(itemsDiv);
     presetSelectListEl.appendChild(groupDiv);
