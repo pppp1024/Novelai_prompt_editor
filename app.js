@@ -1,4 +1,17 @@
-const STORAGE_KEY = "novelai_prompt_appData_v13";
+// ============================
+// Proma: localStorage migration
+// ============================
+const OLD_STORAGE_KEY = "novelai_prompt_appData_v13";
+const STORAGE_KEY = "proma_appData_v1";
+
+// 旧データがあり、新キーがまだ無ければ移行（1回だけ）
+try {
+  if (localStorage.getItem(OLD_STORAGE_KEY) && !localStorage.getItem(STORAGE_KEY)) {
+    localStorage.setItem(STORAGE_KEY, localStorage.getItem(OLD_STORAGE_KEY));
+  }
+} catch (e) {
+  // localStorage が使えない環境向け（プライベートモード等）
+}
 
 let appData = {
   tabs: [
