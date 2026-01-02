@@ -669,14 +669,12 @@
   <div class="app-header-top">
     <div class="top-right-buttons">
       <button id="backupBtn" class="tab-add-button" title="バックアップ" style="font-size:12px;">💾</button>
-      <button id="helpBtn" class="tab-add-button" title="ヘルプ" style="font-size:12px;">？</button>
-    </div>
+</div>
   </div>
 
     <!-- タブ＋追加ボタン＋タブ一覧 -->
   <header>
-    <button id="btnHelp" class="btn">ヘルプ</button>
-    <!-- 横スクロールさせたいタブ部分 -->
+<!-- 横スクロールさせたいタブ部分 -->
     <div class="tab-scroll">
       <div id="tabs"></div>
     </div>
@@ -891,47 +889,7 @@
       <div id="presetCategoryEditList"></div>
     </div>
   </div>
-
-  <!-- ヘルプモーダル -->
-  <div class="modal-backdrop" id="helpModal">
-    <div class="modal" style="width: 95vw; max-width: 480px;">
-      <div class="modal-header">
-        <h2>ヘルプ</h2>
-        <button class="modal-close" onclick="closeHelpModal()">×</button>
-      </div>
-      <div style="font-size:12px; line-height:1.6;">
-        <p><b>このアプリについて</b><br>
-        NovelAI 用のプロンプト（ポジティブ／ネガティブ）を管理・編集するための Web アプリです。ブラウザのローカルストレージに保存されるため、基本的にあなたの端末の中だけで完結します。</p>
-
-        <p><b>基本的な使い方</b></p>
-        <ul>
-          <li>上部のタブごとに、別々のプロンプトセットを管理できます（リネーム・削除・並び替え可）。</li>
-          <li>「ポジティブプロンプト」「ネガティブプロンプト」のテキストエリアに、<code>,</code> 区切りで単語を入力します。</li>
-          <li>各テキストエリア右上の「🗑」で内容を全削除できます。</li>
-        </ul>
-
-        <p><b>候補・単語編集</b></p>
-        <ul>
-          <li>「候補」：カテゴリごとに登録した単語一覧から、タップでプロンプトに追加できます。複数選択モードでまとめて追加もできます。</li>
-          <li>「編集」：候補カテゴリや単語の追加・削除・名前変更ができます。カテゴリごとに折りたたみ可能です。</li>
-          <li>「単語編集」：現在のテキストをチップとして一覧表示し、長押しドラッグで並び替え・×ボタンで削除・プラス/マイナスや数値入力で <code>重み (数字::word::)</code> を編集できます。</li>
-        </ul>
-
-        <p><b>プリセット</b></p>
-        <ul>
-          <li>上部タブの「プリセット」から、ポジティブ／ネガティブ両方の本文を作成し、カテゴリごとに保存できます。</li>
-          <li>メイン画面の「プリセット」ボタンから、保存済みプリセットのポジ／ネガをそれぞれのテキストに一括で挿入できます。複数選択モードでまとめて適用も可能です。</li>
-          <li>プリセットモーダルの「適用方法」で「追加／上書き」を選んでから適用してください。</li>
-        </ul>
-
-        <p><b>並び替えのヒント</b><br>
-        単語編集モーダルでは、チップを「長押し → そのままドラッグ」で並び替えができます。複数選択モードを使うと、複数の単語をまとめて移動・強調・削除できます。</p>
-
-        <p><b>バックアップ</b><br>
-        ヘッダーの 💾 ボタンから、現在の設定を JSON としてエクスポート／インポートできます。環境移行や万一のためのバックアップに使ってください。</p>
-      </div>
-    </div>
-  </div>
+</div>
 
   <!-- バックアップモーダル -->
   <div class="modal-backdrop" id="backupModal">
@@ -1024,19 +982,50 @@
   <!-- メインロジック -->
   <script src="app.js"></script>
 
-    <section id="helpSection" class="help-section" style="margin-top:10px; display:none;">
-      <div style="font-size:13px;font-weight:600;margin-bottom:6px;">使い方（Proma v1.0.0）</div>
-      <div style="font-size:12px;line-height:1.55;white-space:pre-wrap;">
-- タブ：作品ごとにプロンプトを分けて管理します（POS/NEG）。
-- 候補：チップをタップすると現在のエディタへ追加されます。
-- プリセット：モーダルで選んで適用できます。▽で内容を確認、チップ本体で適用。
-- プリセットに追加：現在タブのPOS/NEGをカテゴリに保存します。
-- 取り消し（Undo）：直前の編集を戻します。
-      </div>
-      <div style="margin-top:8px;font-size:11px;opacity:.7;">
-※ 生成サイトへの自動移動は行いません（ブラウザ制限のため）。コピーして貼り付けてください。
-      </div>
-    </section>
+    
+<hr style="margin:18px 0;opacity:.3;">
+<section id="helpSection" class="help-section" style="margin-top:14px;">
+  <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Proma v1.0.0 ヘルプ</div>
 
+  <div style="font-size:12px; line-height:1.6;">
+    <p><b>このアプリについて</b><br>
+    Proma は、画像生成向けのプロンプト（ポジティブ／ネガティブ）を管理・編集するための Web アプリです。
+    データはブラウザのローカルストレージに保存され、基本的にあなたの端末内で完結します。</p>
+
+    <p><b>基本的な使い方</b></p>
+    <ul>
+      <li>上部のタブごとに、別々のプロンプトセットを管理できます（リネーム・削除・並び替え可）。</li>
+      <li>「ポジティブ」「ネガティブ」のテキストエリアに、<code>,</code> 区切りで単語を入力します。</li>
+      <li>各テキストエリア右上の「🗑」で内容を全削除できます。</li>
+    </ul>
+
+    <p><b>候補（チップ）</b></p>
+    <ul>
+      <li>候補モーダルからチップをタップすると、現在のエディタへ追加されます。</li>
+      <li>日本語表示スイッチがある場合、表示は日本語でも追加されるのは英語（元テキスト）のみです。</li>
+    </ul>
+
+    <p><b>プリセット</b></p>
+    <ul>
+      <li>ツールバーの「プリセットに追加」から、現在タブの POS/NEG をプリセットとして保存できます（カテゴリと名前を指定）。</li>
+      <li>保存済みプリセットはプリセットモーダルから適用できます。</li>
+      <li>プリセットチップ右端の <b>▽</b> をタップすると、POS/NEG の内容を下に展開して確認できます。チップ本体のタップは適用です。</li>
+      <li>複数選択モードで、複数プリセットをまとめて適用できます（追加／上書きの選択も可能）。</li>
+      <li>編集モードでは、プリセット名・カテゴリ・本文の編集や削除ができます。</li>
+    </ul>
+
+    <p><b>並び替えのヒント</b><br>
+    単語編集モーダルでは、チップを「長押し → そのままドラッグ」で並び替えができます。
+    複数選択モードを使うと、複数の単語をまとめて移動・強調・削除できます。</p>
+
+    <p><b>バックアップ</b><br>
+    ヘッダーの 💾 ボタンから、現在の設定を JSON としてエクスポート／インポートできます。
+    機種変更や万一のためのバックアップに使ってください。</p>
+
+    <p style="font-size:11px; opacity:.75; margin-top:10px;">
+    ※ 生成サイトへの「自動移動」や「自動貼り付け」はブラウザ制限のため行いません。コピーして貼り付けてください。
+    </p>
+  </div>
+</section>
 </body>
 </html>
