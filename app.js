@@ -565,12 +565,6 @@ if (presetAddConfirmBtn) {
   };
 }
 
-// ヘルプモーダル
-const helpModal = document.getElementById("helpModal");
-
-};
-window.closeHelpModal = closeHelpModal;
-
 // バックアップモーダル
 const backupModal = document.getElementById("backupModal");
 const backupTextarea = document.getElementById("backupTextarea");
