@@ -567,12 +567,8 @@ if (presetAddConfirmBtn) {
 
 // ヘルプモーダル
 const helpModal = document.getElementById("helpModal");
-document.getElementById("helpBtn").onclick = () => {
-  helpModal.style.display = "flex";
+
 };
-function closeHelpModal() {
-  helpModal.style.display = "none";
-}
 window.closeHelpModal = closeHelpModal;
 
 // バックアップモーダル
