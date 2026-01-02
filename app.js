@@ -4,6 +4,10 @@
 const OLD_STORAGE_KEY = "novelai_prompt_appData_v13";
 const STORAGE_KEY = "proma_appData_v1";
 
+const APP_NAME = "Proma";
+const APP_VERSION = "v1.0.0";
+
+
 // 旧データがあり、新キーがまだ無ければ移行（1回だけ）
 try {
   if (localStorage.getItem(OLD_STORAGE_KEY) && !localStorage.getItem(STORAGE_KEY)) {
@@ -3147,3 +3151,18 @@ presetCreateBtn.onclick = () => {
 // 初期表示
 renderTabs();
 updateView();
+
+
+// ============================
+// Help toggle (Proma)
+// ============================
+(function(){
+  const btn = document.getElementById("btnHelp");
+  const sec = document.getElementById("helpSection");
+  if (!btn || !sec) return;
+  btn.addEventListener("click", () => {
+    const show = sec.style.display !== "block";
+    sec.style.display = show ? "block" : "none";
+    btn.textContent = show ? "ヘルプ（閉じる）" : "ヘルプ";
+  });
+})();
